@@ -1,28 +1,33 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <ImageViewer src_dir="~/Desktop/hangji"/>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import ImageViewer from './components/ImageViewer.vue'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    ImageViewer,
   }
 }
 </script>
 
 <style>
+/* 必须指定html和body的height，否则不占满整个网页，真草啊 */
+html, body, #app {
+  height: 100%; 
+  width: 100%;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
+  /* text-align: center; */
   color: #2c3e50;
-  margin-top: 60px;
+  display: flex;
 }
 </style>
