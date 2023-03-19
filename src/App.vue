@@ -16,10 +16,15 @@ export default {
 </script>
 
 <style>
+* {
+  box-sizing: border-box;
+}
+
 /* 必须指定html和body的height，否则不占满整个网页，真草啊 */
 html, body, #app {
   height: 100%; 
   width: 100%;
+  margin: 0;
 }
 
 #app {

@@ -1,5 +1,5 @@
 <template>
-    <div style="display: flex;justify-content: center;margin: 20px">
+    <div >
         <canvas ref="canvas" id="myCanvas" style="border:20px solid #d3ffd3;" @mousedown="handleMousedown" @mouseup="handleMouseup" />
     </div>
 </template>
@@ -90,6 +90,10 @@ export default {
 </script>
 
 <style scoped>
-
+    div {
+        display: flex;
+        justify-content: center;
+        margin: 20px;
+    }
 </style>
 

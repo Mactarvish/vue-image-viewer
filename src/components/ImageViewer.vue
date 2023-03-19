@@ -4,20 +4,25 @@
       <div class="config">
       </div>
 
-      <div class="src-dir">
-        <!-- <h1>{{ srcDir }}</h1> -->
+      <!-- <h1>{{ srcDir }}</h1> -->
+      <div>
+        <div>展示以下目录的图片：</div>
         <input class="input-dir" type="text" v-model="srcDir">
+      </div>
+
+      <div>
+        <div>参与遍历的后缀名：</div>
         <div class="postfixes">
-          <div v-for="(item, index) in filenamePostfixes" :key="item.id">
+          <label v-for="(item, index) in filenamePostfixes" :key="item.id">
             <input type="checkbox" v-model="postfixesChecked[index]" checked>{{ item }}
-          </div>
+          </label>
         </div>
       </div>
 
       <div>
         <!-- 这个label可以把按钮的文字和按钮绑定到一块，点文字也有响应了 -->
         <label for="browseMode0">
-          <input type="radio" id="browseMode0" value=0 v-model="singleBrowseMode" checked>展示全部图片
+          <input type="radio" id="browseMode0" value=0 v-model="singleBrowseMode" checked>列表展示全部图片
         </label>
         <label for="browseMode1">
           <input type="radio" id="browseMode1" value=1 v-model="singleBrowseMode">单图切换浏览
@@ -32,24 +37,26 @@
     </nav>
 
     <main class="main">
-      <div v-if="singleBrowseMode == 0 ? true : false">
+      <div v-if="singleBrowseMode == 0">
         <div id="path_and_image" v-for="item in srcImagePaths" :key="item.id">
           {{ item }}
           <!-- <img :src=item width="512" alt="图像加载失败，请确认后端服务已开启： python utils/server.py -d /"> -->
-          <AnnoCanvas :src=item :canvasWidth=400></AnnoCanvas>
+          <AnnoCanvas :src=item :canvasWidth=512></AnnoCanvas>
         </div>
       </div>
-      <div class="show-single" v-else>
-        <button @click="changeImage('last')">上一张</button>
-        <AnnoCanvas :src="srcImagePaths[curImageIndex]" :canvasWidth=400></AnnoCanvas>
-        <button @click="changeImage('next')">下一张</button>
-
+      <div v-else class="show-single">
+        <button class="change-image-button" @click="changeImage('last')">上一张</button>
+        <div class="single-image-widget">
+          <h3>
+            {{ srcImagePaths[curImageIndex] }}
+          </h3>
+          <!-- <img :src="srcImagePaths[curImageIndex]" width="400"> -->
+          <img :src="srcImagePaths[curImageIndex]" width="512" alt="图像加载失败，请确认后端服务已开启： python utils/server.py -d /">
+        </div>
+        <button class="change-image-button" @click="changeImage('next')">下一张</button>
       </div>
 
-      <div id="side-menu">
-        <div v-for="item in srcImagePaths" :key="item.id"> {{ item }}</div>
-
-      </div>
+      <!-- <div v-for="item in srcImagePaths" :key="item.id"> {{ item }}</div> -->
 
 
       <div>
@@ -150,25 +157,23 @@ export default {
 
 <style lang="less" >
 
+
 .page {
   display: flex;
   flex-direction: row;
 }
 
-.src-dir {
-  display: flex;
-  flex-direction: column;
+.input-dir {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .postfixes {
-  /* display: inline-block; */
+  display: grid;
+  grid-template-columns: auto auto;
   border: #42b983;
   border-radius: 5px;
   border-style: dotted;
-  div {
-    display: inline;
-  }
-
 }
 
 nav {
@@ -176,15 +181,28 @@ nav {
   display: flex;
   flex-direction: column;
   background-color: antiquewhite;
-  width: 30rem;
-  left: 0;
-  top: 0;
+  width: 20rem;
+  // left: 0;
+  // top: 0;
+  // position: fixed;
   padding: 1rem;
-  margin-right: 1rem;
+
+  > * {
+    margin: 0.5rem 0;
+  }
+}
+
+.change-image-button {
+  height: 5rem;
+  width: 5rem;
+  align-items: center;
 }
 
 main {
   flex: 1;
+  display: flex;
+  position: relative;
+  background-color: aqua;
 }
 
 a {
@@ -197,8 +215,19 @@ div#path_and_image {
 }
 
 .show-single {
-  display: grid;
-  grid-template-columns: 5rem 1fr 5rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 0 1rem;
+}
+
+.single-image-widget {
+  align-items: center;
+  margin: 0 1rem;
+  > h3 {
+    overflow-wrap: break-word;
+    width: 30rem;
+  }
 }
 
 </style>
