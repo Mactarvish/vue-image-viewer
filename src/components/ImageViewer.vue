@@ -40,8 +40,7 @@
       <div v-if="singleBrowseMode == 0">
         <div id="path_and_image" v-for="item in srcImagePaths" :key="item.id">
           {{ item }}
-          <!-- <img :src=item width="512" alt="图像加载失败，请确认后端服务已开启： python utils/server.py -d /"> -->
-          <AnnoCanvas :src=item :canvasWidth=512></AnnoCanvas>
+          <AnnoImage :src=item :width="512"></AnnoImage>
         </div>
       </div>
       <div v-else class="show-single">
@@ -50,8 +49,8 @@
           <h3>
             {{ srcImagePaths[curImageIndex] }}
           </h3>
-          <!-- <img :src="srcImagePaths[curImageIndex]" width="400"> -->
-          <img :src="srcImagePaths[curImageIndex]" width="512" alt="图像加载失败，请确认后端服务已开启： python utils/server.py -d /">
+          <AnnoImage :src="srcImagePaths[curImageIndex]" :width="512"></AnnoImage> 
+          alt="图像加载失败，请确认后端服务已开启： python utils/server.py -d /">
         </div>
         <button class="change-image-button" @click="changeImage('next')">下一张</button>
       </div>
@@ -70,12 +69,12 @@
 <script>
 
 import $ from 'jquery'
-import AnnoCanvas from './AnnoCanvas.vue'
+import AnnoImage from './AnnoImage.vue'
 
 export default {
   name: 'ImageViewer',
   components: {
-    AnnoCanvas
+    AnnoImage
   },
   props: {
     // srcDir: String
@@ -161,6 +160,7 @@ export default {
 .page {
   display: flex;
   flex-direction: row;
+  flex: 1;
 }
 
 .input-dir {
@@ -219,6 +219,8 @@ div#path_and_image {
   flex-direction: row;
   align-items: center;
   margin: 0 1rem;
+  justify-content: space-evenly;
+  flex: 1;
 }
 
 .single-image-widget {
