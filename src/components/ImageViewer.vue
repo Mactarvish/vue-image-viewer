@@ -10,13 +10,18 @@
         <input class="input-dir" type="text" v-model="srcDir">
       </div>
 
-      <div>
-        <div>参与遍历的后缀名：</div>
-        <div class="postfixes">
+      <div>参与遍历的后缀名：</div>
+      <div class="postfixes">
+        <el-checkbox-group v-model="postfixesChecked">
+          <!-- 必须有label，否则没法绑定到postfixesChecked里头 -->
+            <el-checkbox v-for="(item, index) in filenamePostfixes" :label="item" :key="index">{{ item }}</el-checkbox>
+        </el-checkbox-group>
+        <!-- <div class="postfixes">
           <label v-for="(item, index) in filenamePostfixes" :key="item.id">
             <input type="checkbox" v-model="postfixesChecked[index]" checked>{{ item }}
+            <el-radio type="radio" v-model="postfixesChecked[index]" checked>{{ item }}</el-radio>
           </label>
-        </div>
+        </div> -->
       </div>
 
       <div>
@@ -87,7 +92,8 @@ export default {
       errInfo: "",
       rootUrl: "http://localhost:8000",
       filenamePostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP"],
-      postfixesChecked: [true, true, true, true, true, true, true],
+      // postfixesChecked: [true, true, true, true, true, true, true],
+      postfixesChecked: [],
       singleBrowseMode: 1,
       curImageIndex: 0,
     };
