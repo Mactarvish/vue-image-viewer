@@ -1,48 +1,8 @@
 <template>
   <div class="page">
-    <nav>
-      <div class="config">
-      </div>
-
-      <!-- <h1>{{ srcDir }}</h1> -->
-      <div>
-        <div>展示以下目录的图片：</div>
-        <input class="input-dir" type="text" v-model="srcDir">
-      </div>
-
-      <div>参与遍历的后缀名：</div>
-      <div class="postfixes">
-        <el-checkbox-group v-model="postfixesChecked">
-          <!-- 必须有label，否则没法绑定到postfixesChecked里头 -->
-            <el-checkbox v-for="(item, index) in filenamePostfixes" :label="item" :key="index">{{ item }}</el-checkbox>
-        </el-checkbox-group>
-        <!-- <div class="postfixes">
-          <label v-for="(item, index) in filenamePostfixes" :key="item.id">
-            <input type="checkbox" v-model="postfixesChecked[index]" checked>{{ item }}
-            <el-radio type="radio" v-model="postfixesChecked[index]" checked>{{ item }}</el-radio>
-          </label>
-        </div> -->
-      </div>
-
-      <div>
-        <!-- 这个label可以把按钮的文字和按钮绑定到一块，点文字也有响应了 -->
-        <label for="browseMode0">
-          <input type="radio" id="browseMode0" value=0 v-model="singleBrowseMode" checked>列表展示全部图片
-        </label>
-        <label for="browseMode1">
-          <input type="radio" id="browseMode1" value=1 v-model="singleBrowseMode">单图切换浏览
-        </label>
-      </div>
-
-      <!-- 竖向flex中的dom会自动横向撑满 -->
-      <button @click="browseDir">预览</button>
-      <div>
-        {{ srcDir }}
-      </div>
-    </nav>
-
     <main class="main">
       <div v-if="singleBrowseMode == 0">
+        <ImageList></ImageList>
         <div id="path_and_image" v-for="item in srcImagePaths" :key="item.id">
           {{ item }}
           <AnnoImage :src=item :width="512"></AnnoImage>
@@ -60,14 +20,40 @@
         <button class="change-image-button" @click="changeImage('next')">下一张</button>
       </div>
 
-      <!-- <div v-for="item in srcImagePaths" :key="item.id"> {{ item }}</div> -->
-
-
       <div>
         {{ errInfo }}
       </div>
-
     </main>
+
+    <nav>
+      <div class="config">
+      </div>
+
+      <!-- <h1>{{ srcDir }}</h1> -->
+      <div>
+        <div>展示以下目录的图片：</div>
+        <input class="input-dir" type="text" v-model="srcDir">
+      </div>
+
+      <div>参与遍历的后缀名：</div>
+      <div class="postfixes">
+        <el-checkbox-group v-model="checkedPostfixes">
+          <!-- 必须有label，否则没法绑定到checkedPostfixes里头 -->
+            <el-checkbox v-for="(item, index) in filenamePostfixes" :label="item" :key="index">{{ item }}</el-checkbox>
+        </el-checkbox-group>
+      </div>
+
+      <el-radio-group v-model="singleBrowseMode">
+        <el-radio label='0'>列表展示全部图片</el-radio>
+        <el-radio label='1'>单图切换浏览</el-radio>
+      </el-radio-group>
+
+      <!-- 竖向flex中的dom会自动横向撑满 -->
+      <el-button @click="browseDir">预览</el-button>
+      <div>
+        {{ srcDir }}
+      </div>
+    </nav>
   </div>
 </template>
 
@@ -75,11 +61,12 @@
 
 import $ from 'jquery'
 import AnnoImage from './AnnoImage.vue'
+import ImageList from './ImageList.vue'
 
 export default {
   name: 'ImageViewer',
   components: {
-    AnnoImage
+    AnnoImage, ImageList
   },
   props: {
     // srcDir: String
@@ -92,9 +79,8 @@ export default {
       errInfo: "",
       rootUrl: "http://localhost:8000",
       filenamePostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP"],
-      // postfixesChecked: [true, true, true, true, true, true, true],
-      postfixesChecked: [],
-      singleBrowseMode: 1,
+      checkedPostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP"],
+      singleBrowseMode: '0',
       curImageIndex: 0,
     };
   },
@@ -118,11 +104,11 @@ export default {
 
         this.srcImagePaths = [];
         let i = 0;
-        console.log(this.postfixesChecked);
+        console.log(this.checkedPostfixes);
         for (const filename of filenames) {
           let isValidPostfix = false;
-          for (let i = 0; i < this.postfixesChecked.length; i++) {
-            if (this.postfixesChecked[i] && filename.endsWith(this.filenamePostfixes[i])) {
+          for (let i = 0; i < this.checkedPostfixes.length; i++) {
+            if (filename.endsWith(this.checkedPostfixes[i])) {
               isValidPostfix = true;
               break;
             }
@@ -136,7 +122,6 @@ export default {
             // break;
           }
         }
-        // this.$message.success(`上传成功！ ${this.uuid}`);
         this.errInfo = "";
       }).catch(reason => {
         console.log(reason);
@@ -188,9 +173,10 @@ nav {
   flex-direction: column;
   background-color: antiquewhite;
   width: 20rem;
-  // left: 0;
-  // top: 0;
-  // position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  position: fixed;
   padding: 1rem;
 
   > * {
@@ -209,6 +195,7 @@ main {
   display: flex;
   position: relative;
   background-color: aqua;
+  padding: 0 0 0 20rem
 }
 
 a {
