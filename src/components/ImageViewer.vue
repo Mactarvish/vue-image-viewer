@@ -77,7 +77,7 @@ export default {
       ],
       srcDir: "/Users/mactarvish/Desktop/hangji",
       errInfo: "",
-      rootUrl: "http://localhost:8000",
+      rootUrl: "http://localhost:8003",
       filenamePostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP"],
       checkedPostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP"],
       singleBrowseMode: '0',
@@ -95,9 +95,13 @@ export default {
     browseDir() {
       console.log("bbb");
       let formData = new FormData();
-      let srcDirUrl = this.rootUrl + this.srcDir + '/'; // ? 请求url必须以/结尾，否则会请求出错？
+      formData.append("recursive",true);
+      formData.append("srcDir", this.srcDir);
+      formData.append("postfixes", this.checkedPostfixes);
+      // let srcDirUrl = this.rootUrl + this.srcDir + '/'; // ? 请求url必须以/结尾，否则会请求出错？
+      let srcDirUrl = this.rootUrl + '/';
       // 请求目录下的全部文件名
-      this.$axios.get(srcDirUrl, formData).then(res => {
+      this.$axios.post(srcDirUrl, formData).then(res => {
         var el = $(res.data);
         console.log($('a', el)); // All the anchor elements
         let filenames = $("a", el).map((i, e) => { return e.text });

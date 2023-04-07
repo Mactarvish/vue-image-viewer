@@ -1,10 +1,40 @@
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, send_from_directory, jsonify
+from collections import defaultdict
+import os
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
+
 
 @app.route('/files/<path:path>')
 def serve_file(path):
     print(path)
+    root_dir = '.' # .表示file_server.py所在目录，不是cmd当前目录
+    return send_from_directory(root_dir, path)
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    print(request)
+    recursive = request.form["recursive"].lower() == "true"
+    src_dir = request.form["srcDir"]
+    postfixes = request.form["postfixes"].split(",")
+    
+    dir_file_path_map = defaultdict(list)
+    for cur_dir, _, filenames in os.walk(src_dir):
+        for filename in filenames:
+            if not os.path.splitext(filename)[-1] in postfixes:
+                continue
+            src_file_path = os.path.join(cur_dir, filename)
+            dir_file_path_map[cur_dir].append(src_file_path)
+        if not recursive:
+            break
+    
+    return jsonify(dir_file_path_map)
+                
+    
+    
+
     root_dir = '.' # .表示file_server.py所在目录，不是cmd当前目录
     return send_from_directory(root_dir, path)
 
