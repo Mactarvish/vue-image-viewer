@@ -1,19 +1,8 @@
 <template>
-    <div class="show">
-        <div class="folder">
-            <h3>11111</h3>
-            <div class="img-table">
-                <img :src="testPath" width="200" alt="312213">
-                <img :src="testPath" width="200" alt="312213">
-            </div>
-        </div>
-        <div class="folder">
-            <h3>11111</h3>
-            <div class="img-table">
-                <img :src="testPath" width="200" alt="312213">
-                <img :src="testPath" width="200" alt="312213">
-            </div>
-        </div>
+    <div class="folder">
+        <h3>{{srcDir}}</h3>
+        <img v-for="srcImagePath in srcImagePaths" 
+        :key="srcImagePath" :src="rootUrl + srcImagePath" :width="width" :alt="srcImagePath">
     </div>
 </template>
 
@@ -22,7 +11,13 @@
 export default {
     name: "ImageList",
     props: {
-
+        rootUrl: String,
+        srcDir: String,
+        srcImagePaths: Array,
+        width: {
+            type: Number,
+            default:200
+        }
     },
     data() {
         return {
@@ -34,19 +29,14 @@ export default {
 </script>
     
 <style>
-div.show {
-    display: flex;
-    align-items: flex-start;
-    flex-direction: column;
-}
-
-.img-table {
-}
-
 .folder {
     border: solid 2px cornflowerblue;
     padding: 0.5rem;
     margin: 1rem;
+}
+
+img {
+    margin-right: 5px;
 }
 
 h3 {

@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <ImageViewer src_dir="~/Desktop/hangji"/>
+    <ImageViewer/>
   </div>
 </template>
 
@@ -22,9 +22,12 @@ export default {
 
 /* 必须指定html和body的height，否则不占满整个网页，真草啊 */
 html, body, #app {
-  height: 100%; 
-  width: 100%;
   margin: 0;
+}
+
+html {
+  height: 100%;
+
 }
 
 #app {
@@ -33,6 +36,5 @@ html, body, #app {
   -moz-osx-font-smoothing: grayscale;
   /* text-align: center; */
   color: #2c3e50;
-  display: flex;
 }
 </style>

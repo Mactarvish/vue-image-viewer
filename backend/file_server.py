@@ -7,11 +7,10 @@ app = Flask(__name__)
 CORS(app)
 
 
-@app.route('/files/<path:path>')
+@app.route('/<path:path>')
 def serve_file(path):
-    print(path)
-    root_dir = '.' # .表示file_server.py所在目录，不是cmd当前目录
-    return send_from_directory(root_dir, path)
+    path = '/' + path
+    return send_from_directory(*os.path.split(path))
 
 @app.route('/', methods=['GET', 'POST'])
 def index():

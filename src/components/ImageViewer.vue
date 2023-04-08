@@ -2,10 +2,11 @@
   <div class="page">
     <main class="main">
       <div v-if="singleBrowseMode == 0">
-        <ImageList></ImageList>
-        <div id="path_and_image" v-for="item in srcImagePaths" :key="item.id">
-          {{ item }}
-          <AnnoImage :src=item :width="512"></AnnoImage>
+        <div id="path-and-image" v-for="(value, key) in dirFilePathMap" :key="key">
+          <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value"></ImageList>
+          {{ key }}
+          {{ value }}
+          <!-- <AnnoImage :src=item :width="512"></AnnoImage> -->
         </div>
       </div>
       <div v-else class="show-single">
@@ -15,7 +16,6 @@
             {{ srcImagePaths[curImageIndex] }}
           </h3>
           <AnnoImage :src="srcImagePaths[curImageIndex]" :width="512"></AnnoImage> 
-          alt="图像加载失败，请确认后端服务已开启： python utils/server.py -d /">
         </div>
         <button class="change-image-button" @click="changeImage('next')">下一张</button>
       </div>
@@ -59,7 +59,6 @@
 
 <script>
 
-import $ from 'jquery'
 import AnnoImage from './AnnoImage.vue'
 import ImageList from './ImageList.vue'
 
@@ -69,17 +68,17 @@ export default {
     AnnoImage, ImageList
   },
   props: {
-    // srcDir: String
   },
   data() {
     return {
       srcImagePaths: [
       ],
-      srcDir: "/Users/mactarvish/Desktop/hangji",
+      dirFilePathMap: {},
+      srcDir: "/Users/mactarvish/Desktop/vue-test",
       errInfo: "",
       rootUrl: "http://localhost:8003",
-      filenamePostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP"],
-      checkedPostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP"],
+      filenamePostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP", ".jpeg"],
+      checkedPostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP", ".jpeg"],
       singleBrowseMode: '0',
       curImageIndex: 0,
     };
@@ -98,34 +97,13 @@ export default {
       formData.append("recursive",true);
       formData.append("srcDir", this.srcDir);
       formData.append("postfixes", this.checkedPostfixes);
-      // let srcDirUrl = this.rootUrl + this.srcDir + '/'; // ? 请求url必须以/结尾，否则会请求出错？
       let srcDirUrl = this.rootUrl + '/';
       // 请求目录下的全部文件名
       this.$axios.post(srcDirUrl, formData).then(res => {
-        var el = $(res.data);
-        console.log($('a', el)); // All the anchor elements
-        let filenames = $("a", el).map((i, e) => { return e.text });
+        this.dirFilePathMap = res.data;
+        console.log(this.dirFilePathMap);
 
         this.srcImagePaths = [];
-        let i = 0;
-        console.log(this.checkedPostfixes);
-        for (const filename of filenames) {
-          let isValidPostfix = false;
-          for (let i = 0; i < this.checkedPostfixes.length; i++) {
-            if (filename.endsWith(this.checkedPostfixes[i])) {
-              isValidPostfix = true;
-              break;
-            }
-          }
-          if (isValidPostfix) {
-            let e = srcDirUrl + filename;
-            this.srcImagePaths.push(e);
-            i++;
-          }
-          if (i == 10) {
-            // break;
-          }
-        }
         this.errInfo = "";
       }).catch(reason => {
         console.log(reason);
@@ -153,9 +131,6 @@ export default {
 
 
 .page {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
 }
 
 .input-dir {
@@ -198,7 +173,7 @@ main {
   flex: 1;
   display: flex;
   position: relative;
-  background-color: aqua;
+  background-color: #C7EDCC;
   padding: 0 0 0 20rem
 }
 
@@ -206,8 +181,7 @@ a {
   color: #42b983;
 }
 
-div#path_and_image {
-  border-top: 3px solid #ff0000;
+div#path-and-image {
   margin-bottom: 10px;
 }
 
