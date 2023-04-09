@@ -1,12 +1,12 @@
 <template>
-  <div class="page">
+  <div>
+    <div class="background"></div>
     <main class="main">
       <div v-if="singleBrowseMode == 0">
         <div id="path-and-image" v-for="(value, key) in dirFilePathMap" :key="key">
           <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value"></ImageList>
           {{ key }}
           {{ value }}
-          <!-- <AnnoImage :src=item :width="512"></AnnoImage> -->
         </div>
       </div>
       <div v-else class="show-single">
@@ -29,7 +29,6 @@
       <div class="config">
       </div>
 
-      <!-- <h1>{{ srcDir }}</h1> -->
       <div>
         <div>展示以下目录的图片：</div>
         <input class="input-dir" type="text" v-model="srcDir">
@@ -58,7 +57,6 @@
 </template>
 
 <script>
-
 import AnnoImage from './AnnoImage.vue'
 import ImageList from './ImageList.vue'
 
@@ -92,7 +90,6 @@ export default {
   },
   methods: {
     browseDir() {
-      console.log("bbb");
       let formData = new FormData();
       formData.append("recursive",true);
       formData.append("srcDir", this.srcDir);
@@ -100,14 +97,16 @@ export default {
       let srcDirUrl = this.rootUrl + '/';
       // 请求目录下的全部文件名
       this.$axios.post(srcDirUrl, formData).then(res => {
+        res;
         this.dirFilePathMap = res.data;
-        console.log(this.dirFilePathMap);
+        // this.$set(this.dirFilePathMap, Object.keys(res.data)[0], Object.values(res.data)[0])
 
         this.srcImagePaths = [];
         this.errInfo = "";
       }).catch(reason => {
         console.log(reason);
         this.errInfo = "错误信息：" + reason + "\n" + "请检查目录是否存在";
+        console.log("草台");
       });
     },
     changeImage(d) {
@@ -128,9 +127,11 @@ export default {
 </script>
 
 <style lang="less" >
-
-
-.page {
+.background {
+  position: fixed;;
+  height: 100%;
+  width: 100%;
+  background-color: #C7EDCC;
 }
 
 .input-dir {
@@ -173,7 +174,6 @@ main {
   flex: 1;
   display: flex;
   position: relative;
-  background-color: #C7EDCC;
   padding: 0 0 0 20rem
 }
 
@@ -202,5 +202,4 @@ div#path-and-image {
     width: 30rem;
   }
 }
-
 </style>

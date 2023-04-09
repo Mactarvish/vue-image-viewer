@@ -10,7 +10,10 @@ CORS(app)
 @app.route('/<path:path>')
 def serve_file(path):
     path = '/' + path
-    return send_from_directory(*os.path.split(path))
+    response = send_from_directory(*os.path.split(path));
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response 
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -31,11 +34,6 @@ def index():
     
     return jsonify(dir_file_path_map)
                 
-    
-    
-
-    root_dir = '.' # .表示file_server.py所在目录，不是cmd当前目录
-    return send_from_directory(root_dir, path)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8003) # 启动服务器，监听IP地址为0.0.0.0，端口号为8000
