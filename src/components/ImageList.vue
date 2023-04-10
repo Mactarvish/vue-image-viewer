@@ -7,8 +7,8 @@
         :src="rootUrl + srcImagePath + `?timestamp=${new Date().getTime()}`" 
         :width="width" :alt="srcImagePath"
         v-tooltip="srcImagePath"
-        :popper-options="{ modifiers: { offset: { offset: ({ width, height }) => [0, -height / 2] } } }" 
         >
+        <div ref="tooltip" class="tooltip" v-show="showTooltip"></div>
     </div>
 </template>
 
@@ -25,8 +25,31 @@ export default {
             default:200
         }
     },
+    directives: {
+        tooltip: {
+            bind(el, binding) {
+                binding.src;
+                    console.log(this);
+                el.addEventListener("mousemove", (e) => {
+                    console.log(this);
+                    this.showTooltip = true;
+                    // this.$refs.tooltip.textContent = "111";
+                    e.clientX;
+                    e.clientY;
+                    console.log(e.clientX, e.clientY);
+                    
+                });
+                el.addEventListener("mouseleave", function(e) {
+                    e;
+                    this.showTooltip = false;
+                });
+            },
+        }
+
+    },
     data() {
         return {
+            showTooltip: false,
         };
     },
     updated() {
