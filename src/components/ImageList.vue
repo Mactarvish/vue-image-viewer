@@ -1,14 +1,14 @@
 <template>
     <div class="folder">
+        <div ref="tooltip" class="tooltip" v-show="showTooltip">{{ tooltipContent }}</div>
         <!-- 注意这里，务必要在src上加上一个时间戳，否则不会在dom刷新后重新发起图片请求 -->
         <h3>{{srcDir}}</h3>
         <img v-for="srcImagePath in srcImagePaths" 
         :key="srcImagePath" 
-        :src="rootUrl + srcImagePath + `?timestamp=${new Date().getTime()}`" 
+        :src="rootUrl + srcImagePath + `?timestamp=${timestamp}`" 
         :width="width" :alt="srcImagePath"
-        v-tooltip="srcImagePath"
+        @mousemove="updateTooltip"
         >
-        <div ref="tooltip" class="tooltip" v-show="showTooltip"></div>
     </div>
 </template>
 
@@ -27,21 +27,21 @@ export default {
     },
     directives: {
         tooltip: {
-            bind(el, binding) {
+            bind(el, binding, vnode) {
                 binding.src;
-                    console.log(this);
                 el.addEventListener("mousemove", (e) => {
-                    console.log(this);
-                    this.showTooltip = true;
+                    vnode.context.showTooltip = true;
                     // this.$refs.tooltip.textContent = "111";
                     e.clientX;
                     e.clientY;
+                    this.tooltipContent = vnode.context.tooltipContent;
                     console.log(e.clientX, e.clientY);
+                    console.log(el.src);
                     
                 });
-                el.addEventListener("mouseleave", function(e) {
+                el.addEventListener("mouseleave", (e) => {
                     e;
-                    this.showTooltip = false;
+                    vnode.context.showTooltip = false;
                 });
             },
         }
@@ -50,6 +50,8 @@ export default {
     data() {
         return {
             showTooltip: false,
+            tooltipContent: "",
+            timestamp: new Date().getTime(),
         };
     },
     updated() {
@@ -59,6 +61,9 @@ export default {
             const e = 200 + Math.floor(Math.random() * 100);
             return e
         },
+        updateTooltip(e) {
+            console.log(e.target);
+        }
     }
 }
 </script>
