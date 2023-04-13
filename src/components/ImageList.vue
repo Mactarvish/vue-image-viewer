@@ -8,6 +8,7 @@
         :src="rootUrl + srcImagePath + `?timestamp=${timestamp}`" 
         :width="width" :alt="srcImagePath"
         @mousemove="updateTooltip"
+        @mouseleave="closeTooltip"
         >
     </div>
 </template>
@@ -35,6 +36,7 @@ export default {
                     e.clientX;
                     e.clientY;
                     this.tooltipContent = vnode.context.tooltipContent;
+
                     console.log(e.clientX, e.clientY);
                     console.log(el.src);
                     
@@ -63,6 +65,13 @@ export default {
         },
         updateTooltip(e) {
             console.log(e.target);
+            this.tooltipContent = e.target.src;
+            this.showTooltip = true;
+            this.$refs.tooltip.style.top = `${e.clientY}px`;
+            this.$refs.tooltip.style.left = `${e.clientX}px`;
+        },
+        closeTooltip() {
+            this.showTooltip = false;
         }
     }
 }
@@ -73,6 +82,11 @@ export default {
     border: solid 2px cornflowerblue;
     padding: 0 0.5rem;
     margin: 1rem;
+}
+
+.tooltip {
+    position: fixed;
+    pointer-events: none;
 }
 
 img {
