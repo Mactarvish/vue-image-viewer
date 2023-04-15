@@ -7,6 +7,7 @@
         :key="srcImagePath" 
         :src="rootUrl + srcImagePath + `?timestamp=${timestamp}`" 
         :width="width" :alt="srcImagePath"
+        @click="copyImagePath"
         @mousemove="updateTooltip"
         @mouseleave="closeTooltip"
         >
@@ -67,12 +68,17 @@ export default {
             console.log(e.target);
             this.tooltipContent = e.target.src;
             this.showTooltip = true;
-            this.$refs.tooltip.style.top = `${e.clientY}px`;
-            this.$refs.tooltip.style.left = `${e.clientX}px`;
+            this.$refs.tooltip.style.top = `${e.clientY + 10}px`;
+            this.$refs.tooltip.style.left = `${e.clientX + 10}px`;
         },
         closeTooltip() {
             this.showTooltip = false;
+        },
+        copyImagePath(e) {
+            
+            this.$message.info(e.target.src);
         }
+        
     }
 }
 </script>
@@ -87,6 +93,9 @@ export default {
 .tooltip {
     position: fixed;
     pointer-events: none;
+    border-style:solid;
+    /* max-width: 200px; */
+    background-color: cornsilk;
 }
 
 img {

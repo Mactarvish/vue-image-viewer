@@ -5,8 +5,6 @@
       <div v-if="singleBrowseMode == 0">
         <div id="path-and-image" v-for="(value, key) in dirFilePathMap" :key="key">
           <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value"></ImageList>
-          {{ key }}
-          {{ value }}
         </div>
       </div>
       <div v-else class="show-single">
