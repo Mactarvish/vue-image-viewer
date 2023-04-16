@@ -2,20 +2,18 @@
     <div class="folder">
         <div ref="tooltip" class="tooltip" v-show="showTooltip">{{ tooltipContent }}</div>
         <!-- 注意这里，务必要在src上加上一个时间戳，否则不会在dom刷新后重新发起图片请求 -->
-        <h3>{{srcDir}}</h3>
-        <img v-for="srcImagePath in srcImagePaths" 
-        :key="srcImagePath" 
-        :src="rootUrl + srcImagePath + `?timestamp=${timestamp}`" 
-        :width="width" :alt="srcImagePath"
-        @click="copyImagePath"
-        @mousemove="updateTooltip"
-        @mouseleave="closeTooltip"
-        >
+        <h3>{{ srcDir }}</h3>
+        <img v-for="srcImagePath in srcImagePaths" :key="srcImagePath"
+            :src="rootUrl + srcImagePath + `?timestamp=${timestamp}`" :width="width" :alt="srcImagePath"
+            @click="copyImagePath" @mousemove="updateTooltip" @mouseleave="closeTooltip">
     </div>
 </template>
 
 
 <script>
+
+import ClipboardJS from 'clipboard';
+
 export default {
     name: "ImageList",
     props: {
@@ -24,31 +22,16 @@ export default {
         srcImagePaths: Array,
         width: {
             type: Number,
-            default:200
+            default: 200
         }
     },
-    directives: {
-        tooltip: {
-            bind(el, binding, vnode) {
-                binding.src;
-                el.addEventListener("mousemove", (e) => {
-                    vnode.context.showTooltip = true;
-                    // this.$refs.tooltip.textContent = "111";
-                    e.clientX;
-                    e.clientY;
-                    this.tooltipContent = vnode.context.tooltipContent;
-
-                    console.log(e.clientX, e.clientY);
-                    console.log(el.src);
-                    
-                });
-                el.addEventListener("mouseleave", (e) => {
-                    e;
-                    vnode.context.showTooltip = false;
-                });
-            },
-        }
-
+    mounted() {
+        const clipboard = new ClipboardJS('.copy-button', {
+            text: () => this.$refs.image.src
+        });
+        clipboard.on('success', (event) => {
+            console.log('Copied:', event.text);
+        });
     },
     data() {
         return {
@@ -75,10 +58,14 @@ export default {
             this.showTooltip = false;
         },
         copyImagePath(e) {
-            
+            const button = document.createElement('button');
+            button.setAttribute('class', 'copy-button');
+            button.setAttribute('data-clipboard-text', e.target.src);
+            button.click();
+            button.remove();
             this.$message.info(e.target.src);
         }
-        
+
     }
 }
 </script>
@@ -93,7 +80,7 @@ export default {
 .tooltip {
     position: fixed;
     pointer-events: none;
-    border-style:solid;
+    border-style: solid;
     /* max-width: 200px; */
     background-color: cornsilk;
 }
