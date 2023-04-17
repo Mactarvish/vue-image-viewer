@@ -1,5 +1,5 @@
 <template>
-    <div class="folder">
+    <div ref="root" class="folder">
         <div ref="tooltip" class="tooltip" v-show="showTooltip">{{ tooltipContent }}</div>
         <!-- 注意这里，务必要在src上加上一个时间戳，否则不会在dom刷新后重新发起图片请求 -->
         <h3>{{ srcDir }}</h3>
@@ -12,7 +12,7 @@
 
 <script>
 
-import ClipboardJS from 'clipboard';
+import Clipboard from 'clipboard'
 
 export default {
     name: "ImageList",
@@ -25,14 +25,6 @@ export default {
             default: 200
         }
     },
-    mounted() {
-        const clipboard = new ClipboardJS('.copy-button', {
-            text: () => this.$refs.image.src
-        });
-        clipboard.on('success', (event) => {
-            console.log('Copied:', event.text);
-        });
-    },
     data() {
         return {
             showTooltip: false,
@@ -42,13 +34,23 @@ export default {
     },
     updated() {
     },
+    mounted() {
+        this.clipboard = new Clipboard(".cb");
+        this.clipboard.on('success', () => {
+            console.log('复制成功！');
+        });
+        // 监听复制失败事件
+        this.clipboard.on('error', () => {
+            alert('草台，复制失败了');
+        });
+    },
     methods: {
         getWidth() {
             const e = 200 + Math.floor(Math.random() * 100);
             return e
         },
         updateTooltip(e) {
-            console.log(e.target);
+            // console.log(e.target);
             this.tooltipContent = e.target.src;
             this.showTooltip = true;
             this.$refs.tooltip.style.top = `${e.clientY + 10}px`;
@@ -58,12 +60,18 @@ export default {
             this.showTooltip = false;
         },
         copyImagePath(e) {
-            const button = document.createElement('button');
-            button.setAttribute('class', 'copy-button');
-            button.setAttribute('data-clipboard-text', e.target.src);
-            button.click();
-            button.remove();
-            this.$message.info(e.target.src);
+            // <button data-clipboard-text="这里的文字将被复制1111222" class="copy-btn" >复制图片链接</button>
+            e;
+            // 触发复制操作
+            const b = document.createElement("button");
+            b.setAttribute("class", "cb");
+            b.setAttribute("data-clipboard-text", "这里的文字将被复制");
+            
+            this.$refs.root.appendChild(b);
+            b.click();
+            b.remove();
+            e;
+            console.log(b);
         }
 
     }

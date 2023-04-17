@@ -55,13 +55,12 @@
 </template>
 
 <script>
-import AnnoImage from './AnnoImage.vue'
 import ImageList from './ImageList.vue'
 
 export default {
   name: 'ImageViewer',
   components: {
-    AnnoImage, ImageList
+    ImageList,
   },
   props: {
   },
