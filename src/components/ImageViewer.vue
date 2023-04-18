@@ -13,7 +13,7 @@
           <h3>
             {{ srcImagePaths[curImageIndex] }}
           </h3>
-          <AnnoImage :src="srcImagePaths[curImageIndex]" :width="512"></AnnoImage> 
+          <AnnoImage :src="srcImagePaths[curImageIndex]" :width="512"></AnnoImage>
         </div>
         <button class="change-image-button" @click="changeImage('next')">下一张</button>
       </div>
@@ -36,7 +36,7 @@
       <div class="postfixes">
         <el-checkbox-group v-model="checkedPostfixes">
           <!-- 必须有label，否则没法绑定到checkedPostfixes里头 -->
-            <el-checkbox v-for="(item, index) in filenamePostfixes" :label="item" :key="index">{{ item }}</el-checkbox>
+          <el-checkbox v-for="(item, index) in filenamePostfixes" :label="item" :key="index">{{ item }}</el-checkbox>
         </el-checkbox-group>
       </div>
 
@@ -56,7 +56,7 @@
 
 <script>
 import ImageList from './ImageList.vue'
-
+import Clipboard from 'clipboard'
 export default {
   name: 'ImageViewer',
   components: {
@@ -85,10 +85,20 @@ export default {
       },
     }
   },
+  mounted() {
+    this.clipboard = new Clipboard(".cb");
+    this.clipboard.on('success', (e) => {
+      this.$message(`复制成功： ${e.text}`);
+    });
+    // 监听复制失败事件
+    this.clipboard.on('error', () => {
+      this.$alert('草台，复制失败了');
+    });
+  },
   methods: {
     browseDir() {
       let formData = new FormData();
-      formData.append("recursive",true);
+      formData.append("recursive", true);
       formData.append("srcDir", this.srcDir);
       formData.append("postfixes", this.checkedPostfixes);
       let srcDirUrl = this.rootUrl + '/';
@@ -125,7 +135,8 @@ export default {
 
 <style lang="less" >
 .background {
-  position: fixed;;
+  position: fixed;
+  ;
   height: 100%;
   width: 100%;
   background-color: #C7EDCC;
@@ -156,7 +167,7 @@ nav {
   position: fixed;
   padding: 1rem;
 
-  > * {
+  >* {
     margin: 0.5rem 0;
   }
 }
@@ -194,7 +205,8 @@ div#path-and-image {
 .single-image-widget {
   align-items: center;
   margin: 0 1rem;
-  > h3 {
+
+  >h3 {
     overflow-wrap: break-word;
     width: 30rem;
   }
