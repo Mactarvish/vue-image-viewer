@@ -4,7 +4,7 @@
     <main class="main">
       <div v-if="singleBrowseMode == 0">
         <div id="path-and-image" v-for="(value, key) in dirFilePathMap" :key="key">
-          <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value"></ImageList>
+          <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth"></ImageList>
         </div>
       </div>
       <div v-else class="show-single">
@@ -45,6 +45,11 @@
         <el-radio label='1'>单图切换浏览</el-radio>
       </el-radio-group>
 
+      <div class="label-bar">
+        <div class="label">图片显示宽度</div>
+        <el-slider class="bar" v-model="imageShowWidth" :step="10" :max="1000" :min="10">
+        </el-slider>
+      </div>
       <!-- 竖向flex中的dom会自动横向撑满 -->
       <el-button @click="browseDir">预览</el-button>
       <div>
@@ -76,6 +81,7 @@ export default {
       checkedPostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP", ".jpeg"],
       singleBrowseMode: '0',
       curImageIndex: 0,
+      imageShowWidth: 200,
     };
   },
   watch: {
@@ -210,5 +216,17 @@ div#path-and-image {
     overflow-wrap: break-word;
     width: 30rem;
   }
+}
+
+.label-bar {
+  display: flex;
+  align-items: center;
+  .label {
+    margin-right: 5px;
+  }
+  .bar {
+    flex: 1;
+  }
+
 }
 </style>
