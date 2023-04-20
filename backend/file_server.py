@@ -1,11 +1,27 @@
 from flask import Flask, request, send_from_directory, jsonify
 from collections import defaultdict
 import os
+from flask import Flask, render_template,request
 from flask_cors import CORS
 
-app = Flask(__name__)
+# app = Flask(__name__)
+app = Flask(__name__,
+            template_folder="../dist",
+            static_folder="../dist",
+            static_url_path="") # TODO 这个参数没整明白，反正是跟上边这个搭配使用，有空看看
+  
 CORS(app)
 
+
+@app.route('/getfile')
+def aaa():
+    return ""
+    ...
+
+@app.route('/')
+@app.route('/index')
+def index():
+    return render_template('index.html')
 
 @app.route('/<path:path>')
 def serve_file(path):
@@ -15,8 +31,8 @@ def serve_file(path):
     return response 
 
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
+@app.route('/getAllImagePaths', methods=['GET', 'POST'])
+def get_all_image_paths():
     print(request)
     recursive = request.form["recursive"].lower() == "true"
     src_dir = request.form["srcDir"]

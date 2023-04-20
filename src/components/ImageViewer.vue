@@ -107,7 +107,7 @@ export default {
       formData.append("recursive", true);
       formData.append("srcDir", this.srcDir);
       formData.append("postfixes", this.checkedPostfixes);
-      let srcDirUrl = this.rootUrl + '/';
+      let srcDirUrl = this.rootUrl + '/getAllImagePaths';
       // 请求目录下的全部文件名
       this.$axios.post(srcDirUrl, formData).then(res => {
         res;
