@@ -4,19 +4,14 @@ import os
 from flask import Flask, render_template,request
 from flask_cors import CORS
 
-# app = Flask(__name__)
 app = Flask(__name__,
             template_folder="../dist",
-            static_folder="../dist",
-            static_url_path="") # TODO 这个参数没整明白，反正是跟上边这个搭配使用，有空看看
+            static_folder="../dist/static", # https://blog.csdn.net/Likianta/article/details/89363973
+            # static_url_path= # 修改dist中index.html的引用url，每个url前头都加上/static
+            )
   
 CORS(app)
 
-
-@app.route('/getfile')
-def aaa():
-    return ""
-    ...
 
 @app.route('/')
 @app.route('/index')
