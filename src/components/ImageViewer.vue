@@ -52,7 +52,7 @@
       </div>
       <!-- 竖向flex中的dom会自动横向撑满 -->
       <el-button @click="browseDir">预览</el-button>
-      <div>
+      <div style="word-wrap: break-word;">
         {{ srcDir }}
       </div>
     </nav>
