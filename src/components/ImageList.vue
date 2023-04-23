@@ -17,6 +17,7 @@ export default {
         rootUrl: String,
         srcDir: String,
         srcImagePaths: Array,
+        timestamp: String,
         width: {
             type: Number,
             default: 200
@@ -26,10 +27,10 @@ export default {
         return {
             showTooltip: false,
             tooltipContent: "",
-            timestamp: new Date().getTime(),
         };
     },
     updated() {
+        // console.log("ImageList updated");
     },
 
     methods: {

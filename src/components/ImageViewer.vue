@@ -3,8 +3,8 @@
     <div class="background"></div>
     <main class="main">
       <div v-if="singleBrowseMode == 0">
-        <div id="path-and-image" v-for="(value, key) in dirFilePathMap" :key="key">
-          <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth"></ImageList>
+        <div id="path-and-image" v-for="(value, key) in dirFilePathsMap" :key="key">
+          <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth" :timestamp="timestamp.toString()"></ImageList>
         </div>
       </div>
       <div v-else class="show-single">
@@ -55,6 +55,11 @@
       <div style="word-wrap: break-word;">
         {{ srcDir }}
       </div>
+
+      <div class="history">
+        <el-tag v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)"> {{ dir }}</el-tag>
+
+      </div>
     </nav>
   </div>
 </template>
@@ -73,7 +78,7 @@ export default {
     return {
       srcImagePaths: [
       ],
-      dirFilePathMap: {},
+      dirFilePathsMap: {},
       srcDir: "/Users/mactarvish/Desktop/vue-test",
       errInfo: "",
       rootUrl: "http://localhost:8003",
@@ -82,6 +87,8 @@ export default {
       singleBrowseMode: '0',
       curImageIndex: 0,
       imageShowWidth: 200,
+      timestamp: "",
+      historyDirs: [],
     };
   },
   watch: {
@@ -111,11 +118,13 @@ export default {
       // 请求目录下的全部文件名
       this.$axios.post(srcDirUrl, formData).then(res => {
         res;
-        this.dirFilePathMap = res.data;
-        // this.$set(this.dirFilePathMap, Object.keys(res.data)[0], Object.values(res.data)[0])
-
+        this.dirFilePathsMap = res.data;
+        this.timestamp = new Date().getTime();
         this.srcImagePaths = [];
         this.errInfo = "";
+        
+        this.historyDirs.push(this.srcDir);
+
       }).catch(reason => {
         console.log(reason);
         this.errInfo = "错误信息：" + reason + "\n" + "请检查目录是否存在";
@@ -134,6 +143,9 @@ export default {
         console.log("未定义切换图片行为");
       }
       console.log(this.curImageIndex);
+    },
+    RemoveHistoryItem(dir) {
+      this.historyDirs.splice(this.historyDirs.indexOf(dir), 1);
     },
   }
 }
@@ -176,6 +188,10 @@ nav {
   >* {
     margin: 0.5rem 0;
   }
+}
+
+.history {
+
 }
 
 .change-image-button {
