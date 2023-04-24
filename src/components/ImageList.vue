@@ -56,6 +56,25 @@ export default {
             document.body.appendChild(b);
             b.click();
             b.remove();
+            // 向服务器发送点击事件
+            console.log(this.$axios);
+            // 请求目录下的全部文件名
+            let formData = new FormData();
+            formData.append("clickedImagePath", e.target.src);
+
+            let srcDirUrl = this.rootUrl + '/clickImagePath';
+
+            this.$axios.get(srcDirUrl, {params:{ // 这里必须是params，不能是别的
+                clickedImagePath: e.target.src,
+            }}).then(res => {
+                res;
+                console.log(res.data);
+                this.dirFilePathsMap = res.data;
+            }).catch(reason => {
+                console.log(reason);
+                this.errInfo = "错误信息：" + reason + "\n" + "请检查目录是否存在";
+                console.log("hhhh");
+            });
         }
     }
 }

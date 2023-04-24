@@ -30,6 +30,12 @@ def serve_file(path):
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response 
 
+@app.route('/clickImagePath')
+def handle_click_image_path():
+    with open("logs/clicked_image_paths.txt", 'a') as f:
+        f.write(request.args["clickedImagePath"] + '\n')
+    return "OK"
+
 
 @app.route('/getAllImagePaths', methods=['GET', 'POST'])
 def get_all_image_paths():
