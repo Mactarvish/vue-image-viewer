@@ -60,6 +60,10 @@
         <el-tag v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)"> {{ dir }}</el-tag>
 
       </div>
+      <div class="info-for-copy">
+        <div> <span style="pointer-events: none; user-select: none;">点击的图像路径 </span>  {{ this.clickedImagePath }}</div>
+        <div> <span style="pointer-events: none; user-select: none;">点击的图像名称 </span>  {{ this.clickedImageName }}</div>
+      </div>
     </nav>
   </div>
 </template>
@@ -89,6 +93,9 @@ export default {
       imageShowWidth: 200,
       timestamp: "",
       historyDirs: [],
+
+      clickedImagePath: "",
+      clickedImageName: "",
     };
   },
   watch: {
@@ -101,7 +108,10 @@ export default {
   mounted() {
     this.clipboard = new Clipboard(".cb");
     this.clipboard.on('success', (e) => {
+      console.log(e.text);
       this.$message(`复制成功： ${e.text}`);
+      this.clickedImagePath = e.text;
+      this.clickedImageName = e.text.split('/').pop();
     });
     // 监听复制失败事件
     this.clipboard.on('error', () => {
@@ -243,6 +253,9 @@ div#path-and-image {
   .bar {
     flex: 1;
   }
+}
 
+.info-for-copy {
+  margin-top: auto;
 }
 </style>

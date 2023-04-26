@@ -10,7 +10,7 @@ if sys.gettrace():
     app = Flask(__name__)
 else:
     app = Flask(__name__,
-                template_folder="../dist",
+                template_folder="../dist/static",
                 static_folder="../dist/static", # https://blog.csdn.net/Likianta/article/details/89363973
                 # static_url_path= # 修改dist中index.html的引用url，每个url前头都加上/static
                 )

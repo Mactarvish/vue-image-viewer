@@ -52,7 +52,8 @@ export default {
             // 触发复制操作
             const b = document.createElement("button");
             b.setAttribute("class", "cb");
-            b.setAttribute("data-clipboard-text", e.target.src);
+            let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
+            b.setAttribute("data-clipboard-text", oriImagePath);
             document.body.appendChild(b);
             b.click();
             b.remove();
