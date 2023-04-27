@@ -28,8 +28,10 @@
       </div>
 
       <div>
-        <div>展示以下目录的图片：</div>
-        <input class="input-dir" type="text" v-model="srcDir">
+        <!-- <div>展示以下目录的图片：</div> -->
+        <!-- <input class="input-dir" type="text" v-model="srcDir"> -->
+        <el-input v-model="srcDir" @keyup.enter.native="browseDir()" placeholder="展示该目录的图片" clearable></el-input>
+
       </div>
 
       <div>参与遍历的后缀名：</div>
@@ -51,7 +53,7 @@
         </el-slider>
       </div>
       <!-- 竖向flex中的dom会自动横向撑满 -->
-      <el-button @click="browseDir">预览</el-button>
+      <el-button ref="preview" @click="browseDir">预览</el-button>
       <div style="word-wrap: break-word;">
         {{ srcDir }}
       </div>
