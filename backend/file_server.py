@@ -14,7 +14,6 @@ else:
                 static_folder="../dist/static", # https://blog.csdn.net/Likianta/article/details/89363973
                 # static_url_path= # 修改dist中index.html的引用url，每个url前头都加上/static
                 )
-  
 CORS(app)
 
 
@@ -36,7 +35,6 @@ def handle_click_image_path():
         f.write(request.args["clickedImagePath"] + '\n')
     return "OK"
 
-
 @app.route('/getAllImagePaths', methods=['GET', 'POST'])
 def get_all_image_paths():
     print(request)
@@ -45,6 +43,10 @@ def get_all_image_paths():
     postfixes = request.form["postfixes"].split(",")
     
     dir_file_path_map = defaultdict(list)
+    if not os.path.exists(src_dir):
+        dir_file_path_map["state"] = "not exist"
+        return jsonify(dir_file_path_map)
+
     for cur_dir, _, filenames in os.walk(src_dir):
         for filename in filenames:
             if not os.path.splitext(filename)[-1] in postfixes:
@@ -53,6 +55,7 @@ def get_all_image_paths():
             dir_file_path_map[cur_dir].append(src_file_path)
         if not recursive:
             break
+    dir_file_path_map["state"] = "ok"
     
     return jsonify(dir_file_path_map)
                 

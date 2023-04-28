@@ -29,17 +29,8 @@ export default {
             tooltipContent: "",
         };
     },
-    updated() {
-        // console.log("ImageList updated");
-    },
-
     methods: {
-        getWidth() {
-            const e = 200 + Math.floor(Math.random() * 100);
-            return e
-        },
         updateTooltip(e) {
-            // console.log(e.target);
             this.tooltipContent = e.target.src;
             this.showTooltip = true;
             this.$refs.tooltip.style.top = `${e.clientY + 10}px`;
@@ -58,11 +49,9 @@ export default {
             b.click();
             b.remove();
             // 向服务器发送点击事件
-            console.log(this.$axios);
             // 请求目录下的全部文件名
             let formData = new FormData();
             formData.append("clickedImagePath", e.target.src);
-
             let srcDirUrl = this.rootUrl + '/clickImagePath';
 
             this.$axios.get(srcDirUrl, {params:{ // 这里必须是params，不能是别的
@@ -74,7 +63,6 @@ export default {
             }).catch(reason => {
                 console.log(reason);
                 this.errInfo = "错误信息：" + reason + "\n" + "请检查目录是否存在";
-                console.log("hhhh");
             });
         }
     }

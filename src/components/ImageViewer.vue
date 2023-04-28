@@ -24,14 +24,8 @@
     </main>
 
     <nav>
-      <div class="config">
-      </div>
-
       <div>
-        <!-- <div>展示以下目录的图片：</div> -->
-        <!-- <input class="input-dir" type="text" v-model="srcDir"> -->
         <el-input v-model="srcDir" @keyup.enter.native="browseDir()" placeholder="展示该目录的图片" clearable></el-input>
-
       </div>
 
       <div>参与遍历的后缀名：</div>
@@ -54,17 +48,21 @@
       </div>
       <!-- 竖向flex中的dom会自动横向撑满 -->
       <el-button ref="preview" @click="browseDir">预览</el-button>
-      <div style="word-wrap: break-word;">
-        {{ srcDir }}
-      </div>
 
       <div class="history">
-        <el-tag v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)"> {{ dir }}</el-tag>
-
+        <el-tag v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)"> 
+          {{ dir }}
+        </el-tag>
       </div>
-      <div class="info-for-copy">
-        <div> <span style="pointer-events: none; user-select: none;">点击的图像路径 </span>  {{ this.clickedImagePath }}</div>
-        <div> <span style="pointer-events: none; user-select: none;">点击的图像名称 </span>  {{ this.clickedImageName }}</div>
+      <div class="info-for-clicked-image">
+        <div> 
+          <div style="pointer-events: none; user-select: none;">点击的图像路径 </div>  
+          {{ this.clickedImagePath }}
+        </div>
+        <div> 
+          <div style="pointer-events: none; user-select: none;">点击的图像名称 </div>  
+          {{ this.clickedImageName }}
+        </div>
       </div>
     </nav>
   </div>
@@ -129,8 +127,14 @@ export default {
       let srcDirUrl = this.rootUrl + '/getAllImagePaths';
       // 请求目录下的全部文件名
       this.$axios.post(srcDirUrl, formData).then(res => {
-        res;
         this.dirFilePathsMap = res.data;
+        const state = this.dirFilePathsMap.state;
+        console.log(state);
+        delete this.dirFilePathsMap.state;
+        if (state == "not exist") {
+          this.$message(`目录 ${this.srcDir} 不存在！`);
+          return;
+        }
         this.timestamp = new Date().getTime();
         this.srcImagePaths = [];
         this.errInfo = "";
@@ -139,8 +143,6 @@ export default {
 
       }).catch(reason => {
         console.log(reason);
-        this.errInfo = "错误信息：" + reason + "\n" + "请检查目录是否存在";
-        console.log("草台");
       });
     },
     changeImage(d) {
@@ -257,7 +259,8 @@ div#path-and-image {
   }
 }
 
-.info-for-copy {
+.info-for-clicked-image {
   margin-top: auto;
+  word-wrap: break-word;
 }
 </style>
