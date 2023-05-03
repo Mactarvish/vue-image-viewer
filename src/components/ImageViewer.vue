@@ -51,18 +51,15 @@
 
       <div class="history">
         <el-tag v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)"> 
-          {{ dir }}
+          <span @click="clickHistory($event)" class="history-dir">{{ dir }}</span>
+          <!-- {{ dir }} -->
         </el-tag>
       </div>
       <div class="info-for-clicked-image">
-        <div> 
           <div style="pointer-events: none; user-select: none;">点击的图像路径 </div>  
           {{ this.clickedImagePath }}
-        </div>
-        <div> 
           <div style="pointer-events: none; user-select: none;">点击的图像名称 </div>  
           {{ this.clickedImageName }}
-        </div>
       </div>
     </nav>
   </div>
@@ -139,7 +136,10 @@ export default {
         this.srcImagePaths = [];
         this.errInfo = "";
         
-        this.historyDirs.push(this.srcDir);
+        if (!this.historyDirs.includes(this.srcDir))
+        {
+          this.historyDirs.push(this.srcDir);
+        }
 
       }).catch(reason => {
         console.log(reason);
@@ -160,6 +160,10 @@ export default {
     },
     RemoveHistoryItem(dir) {
       this.historyDirs.splice(this.historyDirs.indexOf(dir), 1);
+    },
+    clickHistory(e) {
+      this.srcDir = e.target.textContent;
+      this.browseDir();
     },
   }
 }
@@ -262,5 +266,11 @@ div#path-and-image {
 .info-for-clicked-image {
   margin-top: auto;
   word-wrap: break-word;
+}
+
+.history-dir:hover {
+  text-decoration: underline;
+  cursor: pointer;
+  color: blue;
 }
 </style>
