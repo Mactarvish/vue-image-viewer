@@ -31,7 +31,18 @@ export default {
     },
     methods: {
         updateTooltip(e) {
-            this.tooltipContent = e.target.src;
+            let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
+            let oriWidth = e.target.naturalWidth;
+            let oriHeight = e.target.naturalHeight;
+            let visWidth = e.target.offsetWidth;
+            let visHeight = e.target.offsetHeight;
+            let cursorX = e.clientX - e.target.offsetLeft;
+            let cursorY = e.clientY - e.target.offsetTop;
+            let x = parseInt(Math.round(cursorX / visWidth * oriWidth).toString());
+            let y = parseInt(Math.round(cursorY / visHeight * oriHeight).toString());
+            console.log(oriHeight, oriWidth, visHeight, visWidth, cursorX, cursorY, x, y)
+
+            this.tooltipContent = oriImagePath + ` (${x} , ${y})`
             this.showTooltip = true;
             this.$refs.tooltip.style.top = `${e.clientY + 10}px`;
             this.$refs.tooltip.style.left = `${e.clientX + 10}px`;
