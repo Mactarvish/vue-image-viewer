@@ -36,8 +36,9 @@ export default {
             let oriHeight = e.target.naturalHeight;
             let visWidth = e.target.offsetWidth;
             let visHeight = e.target.offsetHeight;
-            let cursorX = e.clientX - e.target.offsetLeft;
-            let cursorY = e.clientY - e.target.offsetTop;
+            let imageRect = e.target.getBoundingClientRect();
+            let cursorX = e.clientX - imageRect.x;
+            let cursorY = e.clientY - imageRect.y;
             let x = parseInt(Math.round(cursorX / visWidth * oriWidth).toString());
             let y = parseInt(Math.round(cursorY / visHeight * oriHeight).toString());
             console.log(oriHeight, oriWidth, visHeight, visWidth, cursorX, cursorY, x, y)
