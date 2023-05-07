@@ -7,13 +7,12 @@
           <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth" :timestamp="timestamp.toString()"></ImageList>
         </div>
       </div>
-      <div v-else class="show-single">
-        <button class="change-image-button" @click="changeImage('last')">上一张</button>
-        <div class="single-image-widget">
+      <div v-else >
+        <div id="path-and-image" v-for="(value, key) in dirFilePathsMap" :key="key">
           <h3>
             {{ srcImagePaths[curImageIndex] }}
           </h3>
-          <AnnoImage :src="srcImagePaths[curImageIndex]" :width="512"></AnnoImage>
+          <ImageFlipper :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth" :timestamp="timestamp.toString()"></ImageFlipper>
         </div>
         <button class="change-image-button" @click="changeImage('next')">下一张</button>
       </div>
@@ -67,11 +66,13 @@
 
 <script>
 import ImageList from './ImageList.vue'
+import ImageFlipper from './ImageFlipper.vue'
 import Clipboard from 'clipboard'
 export default {
   name: 'ImageViewer',
   components: {
     ImageList,
+    ImageFlipper,
   },
   props: {
   },
