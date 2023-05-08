@@ -3,10 +3,16 @@
         <div ref="tooltip" class="tooltip" v-show="showTooltip">{{ tooltipContent }}</div>
         <!-- 注意这里，务必要在src上加上一个时间戳，否则不会在dom刷新后重新发起图片请求 -->
         <h3>{{ srcDir }}</h3>
-
-        <!-- hard code here -->
-        <img :src="rootUrl + srcImagePaths[0] + `?timestamp=${timestamp}`" :width="width" :alt="srcImagePaths[0]"
+        <div>
+            <h6 style="margin: 0;"> {{ srcImagePaths[curImageIndex - 1] }}</h6>
+            <img :src="rootUrl + srcImagePaths[curImageIndex - 1] + `?timestamp=${timestamp}`" :width="width" :alt="srcImagePaths[curImageIndex - 1]"
             @click="copyImagePath" @mousemove="updateTooltip" @mouseleave="closeTooltip">
+        </div>
+        <div class="label-bar">
+            <span>当前是第 </span>
+            <el-input-number size="mini" v-model="curImageIndex" :min="1" :max="srcImagePaths.length" @change="changeImage($event)"></el-input-number>
+            <span> 张，共计 {{  srcImagePaths.length }} 张 </span>
+        </div>
     </div>
 </template>
 
@@ -28,10 +34,13 @@ export default {
         return {
             showTooltip: false,
             tooltipContent: "",
+            curImageIndex: 1
         };
     },
     methods: {
         updateTooltip(e) {
+            document.getElementsByClassName("el-input-number__decrease")[0].click();
+            console.log("x");
             let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
             let oriWidth = e.target.naturalWidth;
             let oriHeight = e.target.naturalHeight;
@@ -77,16 +86,24 @@ export default {
                 console.log(reason);
                 this.errInfo = "错误信息：" + reason + "\n" + "请检查目录是否存在";
             });
+        },
+        changeImage(val) {
+            console.log(val);
         }
     }
 }
 </script>
     
-<style>
+<style scoped>
 .folder {
     border: solid 2px cornflowerblue;
     padding: 0 0.5rem;
     margin: 1rem;
+}
+
+.label-bar {
+    /* inherits: label-bar; */
+    padding-bottom: 0.5rem;
 }
 
 .tooltip {

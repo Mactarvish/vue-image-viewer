@@ -7,14 +7,13 @@
           <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth" :timestamp="timestamp.toString()"></ImageList>
         </div>
       </div>
-      <div v-else >
+      <div v-else class="show-single">
         <div id="path-and-image" v-for="(value, key) in dirFilePathsMap" :key="key">
           <h3>
             {{ srcImagePaths[curImageIndex] }}
           </h3>
           <ImageFlipper :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth" :timestamp="timestamp.toString()"></ImageFlipper>
         </div>
-        <button class="change-image-button" @click="changeImage('next')">下一张</button>
       </div>
 
       <div>
@@ -235,12 +234,10 @@ div#path-and-image {
 }
 
 .show-single {
-  display: flex;
   flex-direction: row;
   align-items: center;
   margin: 0 1rem;
   justify-content: space-evenly;
-  flex: 1;
 }
 
 .single-image-widget {
