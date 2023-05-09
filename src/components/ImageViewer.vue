@@ -44,13 +44,11 @@
         <el-slider class="bar" v-model="imageShowWidth" :step="10" :max="1000" :min="10">
         </el-slider>
       </div>
-      <!-- 竖向flex中的dom会自动横向撑满 -->
       <el-button ref="preview" @click="browseDir">预览</el-button>
 
       <div class="history">
         <el-tag v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)"> 
           <span @click="clickHistory($event)" class="history-dir">{{ dir }}</span>
-          <!-- {{ dir }} -->
         </el-tag>
       </div>
       <div class="info-for-clicked-image">
@@ -122,6 +120,8 @@ export default {
       formData.append("srcDir", this.srcDir);
       formData.append("postfixes", this.checkedPostfixes);
       let srcDirUrl = this.rootUrl + '/getAllImagePaths';
+      // 终止当前所有的图片加载
+      this.dirFilePathsMap = {};
       // 请求目录下的全部文件名
       this.$axios.post(srcDirUrl, formData).then(res => {
         this.dirFilePathsMap = res.data;

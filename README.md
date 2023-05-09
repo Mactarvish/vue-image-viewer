@@ -4,6 +4,11 @@ Simple and fast web-based image viewing tool based on vue2 and flask, which can 
 
 Especially helpful for deep learning & computer vision practitioners to view images.
 
+Any PR or issue will be appreciated!
+
+<div align="center">
+  <img src="docs/WechatIMG58.png"/>
+</div>
 
 ## Quick Use
 
@@ -47,4 +52,5 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
 

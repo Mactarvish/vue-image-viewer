@@ -61,4 +61,4 @@ def get_all_image_paths():
                 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8003) # 启动服务器，监听IP地址为0.0.0.0，端口号为8000
+    app.run(host='0.0.0.0', port=8003) 
