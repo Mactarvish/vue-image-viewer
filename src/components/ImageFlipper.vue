@@ -40,7 +40,6 @@ export default {
     methods: {
         updateTooltip(e) {
             document.getElementsByClassName("el-input-number__decrease")[0].click();
-            console.log("x");
             let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
             let oriWidth = e.target.naturalWidth;
             let oriHeight = e.target.naturalHeight;
@@ -51,7 +50,6 @@ export default {
             let cursorY = e.clientY - imageRect.y;
             let x = parseInt(Math.round(cursorX / visWidth * oriWidth).toString());
             let y = parseInt(Math.round(cursorY / visHeight * oriHeight).toString());
-            console.log(oriHeight, oriWidth, visHeight, visWidth, cursorX, cursorY, x, y)
 
             this.tooltipContent = oriImagePath + ` (${x} , ${y})`
             this.showTooltip = true;

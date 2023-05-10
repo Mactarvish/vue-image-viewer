@@ -1,3 +1,5 @@
+English | [简体中文](README_zh-CN.md)
+
 # vue2-image-viewer
 
 Simple and fast web-based image viewing tool based on vue2 and flask, which can be deployed locally or on remote servers.
@@ -11,6 +13,8 @@ Any PR or issue will be appreciated!
 </div>
 
 ## Quick Use
+
+Neither node nor npm are required, only Python.
 
 Install dependencies:
 ```

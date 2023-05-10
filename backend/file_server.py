@@ -1,9 +1,11 @@
-from flask import Flask, request, send_from_directory, jsonify
-from collections import defaultdict
 import os
+import sys
+from collections import defaultdict
+import argparse
+
+from flask import Flask, request, send_from_directory, jsonify
 from flask import Flask, render_template,request
 from flask_cors import CORS
-import sys
 
 
 if sys.gettrace():
@@ -31,8 +33,8 @@ def serve_file(path):
 
 @app.route('/clickImagePath')
 def handle_click_image_path():
-    with open("logs/clicked_image_paths.txt", 'a') as f:
-        f.write(request.args["clickedImagePath"] + '\n')
+    # with open("logs/clicked_image_paths.txt", 'a') as f:
+        # f.write(request.args["clickedImagePath"] + '\n')
     return "OK"
 
 @app.route('/getAllImagePaths', methods=['GET', 'POST'])
@@ -61,4 +63,7 @@ def get_all_image_paths():
                 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8003) 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", default=8003, type=int)
+    args = parser.parse_args()
+    app.run(host='0.0.0.0', port=args.port) 

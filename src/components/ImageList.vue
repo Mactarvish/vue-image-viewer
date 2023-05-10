@@ -41,7 +41,6 @@ export default {
             let cursorY = e.clientY - imageRect.y;
             let x = parseInt(Math.round(cursorX / visWidth * oriWidth).toString());
             let y = parseInt(Math.round(cursorY / visHeight * oriHeight).toString());
-            console.log(oriHeight, oriWidth, visHeight, visWidth, cursorX, cursorY, x, y)
 
             this.tooltipContent = oriImagePath + ` (${x} , ${y})`
             this.showTooltip = true;

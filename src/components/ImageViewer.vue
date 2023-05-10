@@ -4,7 +4,8 @@
     <main class="main">
       <div v-if="singleBrowseMode == 0">
         <div id="path-and-image" v-for="(value, key) in dirFilePathsMap" :key="key">
-          <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth" :timestamp="timestamp.toString()"></ImageList>
+          <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth"
+            :timestamp="timestamp.toString()"></ImageList>
         </div>
       </div>
       <div v-else class="show-single">
@@ -12,7 +13,8 @@
           <h3>
             {{ srcImagePaths[curImageIndex] }}
           </h3>
-          <ImageFlipper :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth" :timestamp="timestamp.toString()"></ImageFlipper>
+          <ImageFlipper :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth"
+            :timestamp="timestamp.toString()"></ImageFlipper>
         </div>
       </div>
 
@@ -47,15 +49,15 @@
       <el-button ref="preview" @click="browseDir">预览</el-button>
 
       <div class="history">
-        <el-tag v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)"> 
+        <el-tag v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)">
           <span @click="clickHistory($event)" class="history-dir">{{ dir }}</span>
         </el-tag>
       </div>
       <div class="info-for-clicked-image">
-          <div style="pointer-events: none; user-select: none;">点击的图像路径 </div>  
-          {{ this.clickedImagePath }}
-          <div style="pointer-events: none; user-select: none;">点击的图像名称 </div>  
-          {{ this.clickedImageName }}
+        <div style="pointer-events: none; user-select: none;">点击的图像路径 </div>
+        {{ this.clickedImagePath }}
+        <div style="pointer-events: none; user-select: none;">点击的图像名称 </div>
+        {{ this.clickedImageName }}
       </div>
     </nav>
   </div>
@@ -80,7 +82,7 @@ export default {
       dirFilePathsMap: {},
       srcDir: "/Users/mactarvish/Desktop/vue-test",
       errInfo: "",
-      rootUrl: "http://localhost:8003",
+      rootUrl: "", //"http://localhost:8003",
       filenamePostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP", ".jpeg"],
       checkedPostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP", ".jpeg"],
       singleBrowseMode: '0',
@@ -101,9 +103,17 @@ export default {
     }
   },
   mounted() {
+    console.log(window.location);
+    // 自动查询域名等信息（自动匹配后端端口）
+    this.rootUrl = window.location.origin;
+    // 开发模式下vue端口号是8081，此时匹配后端flask的调试端口号8003
+    if (this.rootUrl.includes("8081"))
+    {
+      this.rootUrl = "http://localhost:8003";
+    }
+    // 构造剪切板对象
     this.clipboard = new Clipboard(".cb");
     this.clipboard.on('success', (e) => {
-      console.log(e.text);
       this.$message(`复制成功： ${e.text}`);
       this.clickedImagePath = e.text;
       this.clickedImageName = e.text.split('/').pop();
@@ -135,28 +145,14 @@ export default {
         this.timestamp = new Date().getTime();
         this.srcImagePaths = [];
         this.errInfo = "";
-        
-        if (!this.historyDirs.includes(this.srcDir))
-        {
+
+        if (!this.historyDirs.includes(this.srcDir)) {
           this.historyDirs.push(this.srcDir);
         }
 
       }).catch(reason => {
         console.log(reason);
       });
-    },
-    changeImage(d) {
-      console.log(d);
-      if (d === "next") {
-        this.curImageIndex = Math.min(this.srcImagePaths.length - 1, this.curImageIndex + 1);
-      }
-      else if (d === "last") {
-        this.curImageIndex = Math.max(0, this.curImageIndex - 1);
-      }
-      else {
-        console.log("未定义切换图片行为");
-      }
-      console.log(this.curImageIndex);
     },
     RemoveHistoryItem(dir) {
       this.historyDirs.splice(this.historyDirs.indexOf(dir), 1);
@@ -208,9 +204,7 @@ nav {
   }
 }
 
-.history {
-
-}
+.history {}
 
 .change-image-button {
   height: 5rem;
@@ -253,9 +247,11 @@ div#path-and-image {
 .label-bar {
   display: flex;
   align-items: center;
+
   .label {
     margin-right: 5px;
   }
+
   .bar {
     flex: 1;
   }

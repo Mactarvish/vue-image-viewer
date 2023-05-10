@@ -12,6 +12,8 @@
 
 ## 立即使用
 
+只要有python就能使，用不着npm也用不着node啥的，干就完了
+
 安装依赖：
 ```
 pip install flask
@@ -22,7 +24,9 @@ pip install Flask-Cors
 ```
 python backend/file_server.py
 ```
-在 `http://127.0.0.1:8003` 上查看你想看的目录中的图片
+在 `http://127.0.0.1:8003` 上查看你想看的目录中的图片。
+
+或者用 `python backend/file_server.py --port xxxx` 指定一个端口号。
 
 
 ## 项目安装
@@ -37,13 +41,12 @@ npm run serve
 ```
 
 ### 编译并压缩发布版本
-```
-npm run build
-```
-或者
+
+这里需要使用
 ```
 python utils/build_vue.py
 ```
+来构建发布版，因为直接`npm run build`出来的vue发布产物没法直接被flask加载（因为flask的资源寻址太蛋疼了，暂时没找到啥好办法，知道更好的解决方案的老铁请提个issue），从而被迫用pyhton硬生生地修改构建产物里的引用路径了。
 
 ### 格式化
 ```
