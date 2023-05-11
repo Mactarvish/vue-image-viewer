@@ -103,9 +103,8 @@ export default {
     }
   },
   mounted() {
-    console.log(window.location);
     // 自动查询域名等信息（自动匹配后端端口）
-    this.rootUrl = window.location.origin;
+    this.rootUrl = window.location.href;
     // 开发模式下vue端口号是8081，此时匹配后端flask的调试端口号8003
     if (this.rootUrl.includes("8081"))
     {

@@ -46,7 +46,7 @@ npm run serve
 ```
 python utils/build_vue.py
 ```
-来构建发布版，因为直接`npm run build`出来的vue发布产物没法直接被flask加载（因为flask的资源寻址太蛋疼了，暂时没找到啥好办法，知道更好的解决方案的老铁请提个issue），从而被迫用pyhton硬生生地修改构建产物里的引用路径了。
+来构建发布版，因为直接`npm run build`出来的vue发布产物没法直接被flask加载（因为flask的资源寻址太蛋疼了，暂时没找到啥好办法，知道更好的解决方案的老铁请提个issue或者pr），从而被迫用pyhton硬生生地修改构建产物里的引用路径了。
 
 ### 格式化
 ```

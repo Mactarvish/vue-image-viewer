@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 from collections import defaultdict
 import argparse
@@ -26,7 +27,9 @@ def index():
 
 @app.route('/<path:path>')
 def serve_file(path):
-    path = '/' + path
+    # 对于linux或者苹果系统，一般都是/开头的，而url中这个/就被吃了，所以得额外加上
+    if platform.system() != 'Windows':
+        path = '/' + path
     response = send_from_directory(*os.path.split(path));
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response 
