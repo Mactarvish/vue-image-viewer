@@ -49,7 +49,7 @@
       <el-button ref="preview" @click="browseDir">预览</el-button>
 
       <div class="history">
-        <el-tag v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)">
+        <el-tag style="height: initial; white-space: initial;" v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)">
           <span @click="clickHistory($event)" class="history-dir">{{ dir }}</span>
         </el-tag>
       </div>
