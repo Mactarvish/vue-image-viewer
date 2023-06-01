@@ -1,60 +1,58 @@
-English | [简体中文](README_zh-CN.md)
-
 # vue2-image-viewer
 
-Simple and fast web-based image viewing tool based on vue2 and flask, which can be deployed locally or on remote servers.
+基于vue2和flask的简单快速网络图像查看工具，可在本地或远程服务器上部署。
 
-Especially helpful for deep learning & computer vision practitioners to view images.
+特别适用于深度学习和计算机视觉从业者看图。
 
-Any PR or issue will be appreciated!
 
 <div align="center">
   <img src="docs/WechatIMG58.png"/>
 </div>
 
-## Quick Use
+## 立即使用
 
-Neither node nor npm are required, only Python.
+只要有python就能使，用不着npm也用不着node啥的，干就完了
 
-Install dependencies:
+安装依赖：
 ```
 pip install flask
 pip install Flask-Cors
 ```
 
-Then just run
+然后运行以下命令即可：
 ```
 python backend/file_server.py
 ```
-and view your images on `http://127.0.0.1:8003`
+在 `http://127.0.0.1:8003` 上查看你想看的目录中的图片。
+
+或者用 `python backend/file_server.py --port xxxx` 指定一个端口号。
 
 
-## Project setup
+## 项目安装
 ```
 npm install
 ```
 
-### Compiles and hot-reloads for development
+### 编译并在开发过程中热加载
 ```
 python backend/file_server.py
 npm run serve
 ```
 
-### Compiles and minifies for production
-```
-npm run build
-```
-or
+### 编译并压缩发布版本
+
+这里需要使用
 ```
 python utils/build_vue.py
 ```
+来构建发布版，因为直接`npm run build`出来的vue发布产物没法直接被flask加载（因为flask的资源寻址太蛋疼了，暂时没找到啥好办法，知道更好的解决方案的老铁请提个issue或者pr），从而被迫用pyhton硬生生地修改构建产物里的引用路径了。
 
-### Lints and fixes files
+### 格式化
 ```
 npm run lint
 ```
 
-### Customize configuration
+### 自定义配置
 See [Configuration Reference](https://cli.vuejs.org/config/).
 
 
