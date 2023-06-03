@@ -2,6 +2,7 @@
   <div>
     <div class="background"></div>
     <main class="main">
+      <router-view></router-view>
       <div v-if="singleBrowseMode == 0">
         <div id="path-and-image" v-for="(value, key) in dirFilePathsMap" :key="key">
           <ImageList :rootUrl="rootUrl" :srcDir="key" :srcImagePaths="value" :width="imageShowWidth"
@@ -35,7 +36,11 @@
           <el-checkbox v-for="(item, index) in filenamePostfixes" :label="item" :key="index">{{ item }}</el-checkbox>
         </el-checkbox-group>
       </div>
-
+      
+      <div>
+        <router-link to="/list">列表展示全部图片</router-link> |
+        <router-link to="/flipper">单图切换浏览</router-link>
+      </div>
       <el-radio-group v-model="singleBrowseMode">
         <el-radio label='0'>列表展示全部图片</el-radio>
         <el-radio label='1'>单图切换浏览</el-radio>
