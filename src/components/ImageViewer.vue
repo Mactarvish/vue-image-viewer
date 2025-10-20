@@ -1,6 +1,24 @@
 <template>
   <div>
     <div class="background"></div>
+    <!-- 放大图像模态框 -->
+    <div v-if="showZoomModal" class="zoom-modal" @click="closeZoomModal">
+      <div class="zoom-modal-content" @click.stop>
+        <div class="zoom-modal-header">
+          <h3>{{ zoomedImagePath }}</h3>
+          <el-button class="close-btn" @click="closeZoomModal" icon="el-icon-close" circle></el-button>
+        </div>
+        <div class="zoom-modal-body">
+          <img :src="rootUrl + zoomedImagePath + `?timestamp=${timestamp}`" :alt="zoomedImagePath" 
+               class="zoomed-image" @click="closeZoomModal">
+        </div>
+        <div class="zoom-modal-footer">
+          <el-button @click="closeZoomModal">关闭</el-button>
+          <el-button @click="copyZoomedImagePath" type="primary">复制路径</el-button>
+        </div>
+      </div>
+    </div>
+    
     <main class="main">
       <router-view></router-view>
       <div v-if="singleBrowseMode == 0">
@@ -108,6 +126,10 @@ export default {
 
       clickedImagePath: "",
       clickedImageName: "",
+      
+      // 放大功能相关数据
+      showZoomModal: false,
+      zoomedImagePath: "",
     };
   },
   watch: {
@@ -208,6 +230,27 @@ export default {
         const j = Math.floor(Math.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
       }
+    },
+    
+    // 放大图像功能
+    zoomImage(imagePath) {
+      this.zoomedImagePath = imagePath;
+      this.showZoomModal = true;
+    },
+    
+    closeZoomModal() {
+      this.showZoomModal = false;
+      this.zoomedImagePath = "";
+    },
+    
+    copyZoomedImagePath() {
+      const b = document.createElement("button");
+      b.setAttribute("class", "cb");
+      b.setAttribute("data-clipboard-text", this.zoomedImagePath);
+      document.body.appendChild(b);
+      b.click();
+      b.remove();
+      this.$message(`复制成功： ${this.zoomedImagePath}`);
     },
   }
 }
@@ -329,5 +372,83 @@ div#path-and-image {
     flex-direction: column;
     gap: 5px;
   }
+}
+
+/* 放大模态框样式 */
+.zoom-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.zoom-modal-content {
+  background-color: white;
+  border-radius: 8px;
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.zoom-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.zoom-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+  max-width: 80%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.close-btn {
+  border: none;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #999;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+.zoom-modal-body {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+.zoomed-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+.zoom-modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 </style>

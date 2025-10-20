@@ -5,7 +5,7 @@
         <h3>{{ srcDir }}</h3>
         <img v-for="srcImagePath in srcImagePaths" :key="srcImagePath"
             :src="rootUrl + srcImagePath + `?timestamp=${timestamp}`" :width="width" :alt="srcImagePath"
-            @click="copyImagePath" @mousemove="updateTooltip" @mouseleave="closeTooltip">
+            @click="copyImagePath" @dblclick="zoomImage" @mousemove="updateTooltip" @mouseleave="closeTooltip">
     </div>
 </template>
 

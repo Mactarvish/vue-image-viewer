@@ -6,7 +6,7 @@
         <div>
             <h6 style="margin: 0;"> {{ srcImagePaths[curImageIndex - 1] }}</h6>
             <img :src="rootUrl + srcImagePaths[curImageIndex - 1] + `?timestamp=${timestamp}`" :width="width" :alt="srcImagePaths[curImageIndex - 1]"
-            @click="copyImagePath" @mousemove="updateTooltip" @mouseleave="closeTooltip">
+            @click="copyImagePath" @dblclick="zoomImage" @mousemove="updateTooltip" @mouseleave="closeTooltip">
         </div>
         <div class="label-bar">
             <span>当前是第 </span>
@@ -87,6 +87,12 @@ export default {
         },
         changeImage(val) {
             console.log(val);
+        },
+        
+        zoomImage(e) {
+            // 双击放大图像
+            let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
+            this.$parent.zoomImage(oriImagePath);
         }
     }
 }
