@@ -10,7 +10,8 @@
         </div>
         <div class="zoom-modal-body">
           <img :src="rootUrl + zoomedImagePath + `?timestamp=${timestamp}`" :alt="zoomedImagePath" 
-               class="zoomed-image" @click="closeZoomModal">
+               class="zoomed-image" @click="closeZoomModal" @mousemove="updateZoomTooltip" @mouseleave="closeZoomTooltip">
+          <div ref="zoomTooltip" class="zoom-tooltip" v-show="showZoomTooltip">{{ zoomTooltipContent }}</div>
         </div>
         <div class="zoom-modal-footer">
           <el-button @click="closeZoomModal">关闭</el-button>
@@ -130,6 +131,8 @@ export default {
       // 放大功能相关数据
       showZoomModal: false,
       zoomedImagePath: "",
+      showZoomTooltip: false,
+      zoomTooltipContent: "",
     };
   },
   watch: {
@@ -241,6 +244,7 @@ export default {
     closeZoomModal() {
       this.showZoomModal = false;
       this.zoomedImagePath = "";
+      this.showZoomTooltip = false;
     },
     
     copyZoomedImagePath() {
@@ -251,6 +255,28 @@ export default {
       b.click();
       b.remove();
       this.$message(`复制成功： ${this.zoomedImagePath}`);
+    },
+    
+    // 放大模态框的坐标显示功能
+    updateZoomTooltip(e) {
+      let oriWidth = e.target.naturalWidth;
+      let oriHeight = e.target.naturalHeight;
+      let visWidth = e.target.offsetWidth;
+      let visHeight = e.target.offsetHeight;
+      let imageRect = e.target.getBoundingClientRect();
+      let cursorX = e.clientX - imageRect.x;
+      let cursorY = e.clientY - imageRect.y;
+      let x = parseInt(Math.round(cursorX / visWidth * oriWidth).toString());
+      let y = parseInt(Math.round(cursorY / visHeight * oriHeight).toString());
+
+      this.zoomTooltipContent = `坐标: (${x}, ${y}) | 图像尺寸: ${oriWidth} × ${oriHeight}`;
+      this.showZoomTooltip = true;
+      this.$refs.zoomTooltip.style.top = `${e.clientY + 10}px`;
+      this.$refs.zoomTooltip.style.left = `${e.clientX + 10}px`;
+    },
+    
+    closeZoomTooltip() {
+      this.showZoomTooltip = false;
     },
   }
 }
@@ -450,5 +476,19 @@ div#path-and-image {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.zoom-tooltip {
+  position: fixed;
+  pointer-events: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 5px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  max-width: 300px;
+  white-space: nowrap;
 }
 </style>

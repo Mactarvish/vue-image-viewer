@@ -42,7 +42,7 @@ export default {
             let x = parseInt(Math.round(cursorX / visWidth * oriWidth).toString());
             let y = parseInt(Math.round(cursorY / visHeight * oriHeight).toString());
 
-            this.tooltipContent = oriImagePath + ` (${x} , ${y})`
+            this.tooltipContent = `坐标: (${x}, ${y}) | 图像尺寸: ${oriWidth} × ${oriHeight}`;
             this.showTooltip = true;
             this.$refs.tooltip.style.top = `${e.clientY + 10}px`;
             this.$refs.tooltip.style.left = `${e.clientX + 10}px`;

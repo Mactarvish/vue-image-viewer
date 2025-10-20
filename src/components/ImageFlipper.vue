@@ -39,7 +39,6 @@ export default {
     },
     methods: {
         updateTooltip(e) {
-            document.getElementsByClassName("el-input-number__decrease")[0].click();
             let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
             let oriWidth = e.target.naturalWidth;
             let oriHeight = e.target.naturalHeight;
@@ -51,7 +50,7 @@ export default {
             let x = parseInt(Math.round(cursorX / visWidth * oriWidth).toString());
             let y = parseInt(Math.round(cursorY / visHeight * oriHeight).toString());
 
-            this.tooltipContent = oriImagePath + ` (${x} , ${y})`
+            this.tooltipContent = `坐标: (${x}, ${y}) | 图像尺寸: ${oriWidth} × ${oriHeight}`;
             this.showTooltip = true;
             this.$refs.tooltip.style.top = `${e.clientY + 10}px`;
             this.$refs.tooltip.style.left = `${e.clientX + 10}px`;
