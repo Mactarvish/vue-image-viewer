@@ -51,6 +51,15 @@
         <el-slider class="bar" v-model="imageShowWidth" :step="10" :max="1000" :min="10">
         </el-slider>
       </div>
+      
+      <div class="sort-options">
+        <div class="label">图像排序方式</div>
+        <el-radio-group v-model="sortMode">
+          <el-radio label="path">按路径顺序</el-radio>
+          <el-radio label="random">随机乱序</el-radio>
+        </el-radio-group>
+      </div>
+      
       <el-button ref="preview" @click="browseDir">预览</el-button>
 
       <div class="history">
@@ -95,6 +104,7 @@ export default {
       imageShowWidth: 200,
       timestamp: "",
       historyDirs: [],
+      sortMode: 'path', // 排序模式：path-按路径顺序，random-随机乱序
 
       clickedImagePath: "",
       clickedImageName: "",
@@ -104,6 +114,15 @@ export default {
     singleBrowseMode: {
       handler(newVal, oldVal) {
         console.log(newVal, oldVal);
+      },
+    },
+    sortMode: {
+      handler(newVal, oldVal) {
+        // 当排序模式改变时，重新排序图像路径
+        if (Object.keys(this.dirFilePathsMap).length > 0) {
+          this.sortImagePaths();
+          this.timestamp = new Date().getTime(); // 强制刷新图像显示
+        }
       },
     }
   },
@@ -146,6 +165,10 @@ export default {
           this.$message(`目录 ${this.srcDir} 不存在！`);
           return;
         }
+        
+        // 根据排序模式处理图像路径
+        this.sortImagePaths();
+        
         this.timestamp = new Date().getTime();
         this.srcImagePaths = [];
         this.errInfo = "";
@@ -164,6 +187,27 @@ export default {
     clickHistory(e) {
       this.srcDir = e.target.textContent;
       this.browseDir();
+    },
+    sortImagePaths() {
+      // 对每个目录下的图像路径进行排序
+      for (const dir in this.dirFilePathsMap) {
+        if (this.dirFilePathsMap.hasOwnProperty(dir)) {
+          if (this.sortMode === 'random') {
+            // 随机乱序
+            this.shuffleArray(this.dirFilePathsMap[dir]);
+          } else {
+            // 按路径顺序（默认排序）
+            this.dirFilePathsMap[dir].sort();
+          }
+        }
+      }
+    },
+    shuffleArray(array) {
+      // Fisher-Yates 洗牌算法
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
     },
   }
 }
@@ -270,5 +314,20 @@ div#path-and-image {
   text-decoration: underline;
   cursor: pointer;
   color: blue;
+}
+
+.sort-options {
+  margin: 0.5rem 0;
+  
+  .label {
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .el-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
 }
 </style>
