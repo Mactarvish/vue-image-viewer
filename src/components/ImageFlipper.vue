@@ -6,7 +6,7 @@
         <div>
             <h6 style="margin: 0;"> {{ srcImagePaths[curImageIndex - 1] }}</h6>
             <img :src="rootUrl + srcImagePaths[curImageIndex - 1] + `?timestamp=${timestamp}`" :width="width" :alt="srcImagePaths[curImageIndex - 1]"
-            @click="copyImagePath" @mousemove="updateTooltip" @mouseleave="closeTooltip">
+            @click="copyImagePath" @dblclick="zoomImage" @mousemove="updateTooltip" @mouseleave="closeTooltip">
         </div>
         <div class="label-bar">
             <span>当前是第 </span>
@@ -39,7 +39,6 @@ export default {
     },
     methods: {
         updateTooltip(e) {
-            document.getElementsByClassName("el-input-number__decrease")[0].click();
             let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
             let oriWidth = e.target.naturalWidth;
             let oriHeight = e.target.naturalHeight;
@@ -51,7 +50,7 @@ export default {
             let x = parseInt(Math.round(cursorX / visWidth * oriWidth).toString());
             let y = parseInt(Math.round(cursorY / visHeight * oriHeight).toString());
 
-            this.tooltipContent = oriImagePath + ` (${x} , ${y})`
+            this.tooltipContent = `坐标: (${x}, ${y}) | 图像尺寸: ${oriWidth} × ${oriHeight}`;
             this.showTooltip = true;
             this.$refs.tooltip.style.top = `${e.clientY + 10}px`;
             this.$refs.tooltip.style.left = `${e.clientX + 10}px`;
@@ -87,6 +86,12 @@ export default {
         },
         changeImage(val) {
             console.log(val);
+        },
+        
+        zoomImage(e) {
+            // 双击放大图像
+            let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
+            this.$parent.zoomImage(oriImagePath);
         }
     }
 }
