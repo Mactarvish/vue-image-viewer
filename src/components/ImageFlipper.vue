@@ -1,21 +1,20 @@
 <template>
     <div ref="root" class="folder">
         <div ref="tooltip" class="tooltip" v-show="showTooltip">{{ tooltipContent }}</div>
-        <!-- 注意这里，务必要在src上加上一个时间戳，否则不会在dom刷新后重新发起图片请求 -->
         <h3>{{ srcDir }}</h3>
-        <div>
-            <h6 style="margin: 0;"> {{ srcImagePaths[curImageIndex - 1] }}</h6>
-            <img :src="rootUrl + srcImagePaths[curImageIndex - 1] + `?timestamp=${timestamp}`" :width="width" :alt="srcImagePaths[curImageIndex - 1]"
-            @click="copyImagePath" @dblclick="zoomImage" @mousemove="updateTooltip" @mouseleave="closeTooltip">
+        <div v-if="srcImagePaths.length">
+            <h6 style="margin: 0;">{{ srcImagePaths[curImageIndex - 1] }}</h6>
+            <img :src="rootUrl + srcImagePaths[curImageIndex - 1] + `?timestamp=${timestamp}`"
+                :width="width" :alt="srcImagePaths[curImageIndex - 1]"
+                @click="copyImagePath" @dblclick="zoomImage" @mousemove="updateTooltip" @mouseleave="closeTooltip">
         </div>
         <div class="label-bar">
             <span>当前是第 </span>
-            <el-input-number size="mini" v-model="curImageIndex" :min="1" :max="srcImagePaths.length" @change="changeImage($event)"></el-input-number>
-            <span> 张，共计 {{  srcImagePaths.length }} 张 </span>
+            <el-input-number size="mini" v-model="curImageIndex" :min="1" :max="Math.max(srcImagePaths.length, 1)"></el-input-number>
+            <span> 张，共计 {{ srcImagePaths.length }} 张 </span>
         </div>
     </div>
 </template>
-
 
 <script>
 export default {
@@ -37,9 +36,17 @@ export default {
             curImageIndex: 1
         };
     },
+    watch: {
+        srcImagePaths() {
+            this.curImageIndex = 1;
+        }
+    },
     methods: {
+        pathFromEvent(e) {
+            return e.target.alt || "";
+        },
         updateTooltip(e) {
-            let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
+            const path = this.pathFromEvent(e);
             let oriWidth = e.target.naturalWidth;
             let oriHeight = e.target.naturalHeight;
             let visWidth = e.target.offsetWidth;
@@ -47,10 +54,9 @@ export default {
             let imageRect = e.target.getBoundingClientRect();
             let cursorX = e.clientX - imageRect.x;
             let cursorY = e.clientY - imageRect.y;
-            let x = parseInt(Math.round(cursorX / visWidth * oriWidth).toString());
-            let y = parseInt(Math.round(cursorY / visHeight * oriHeight).toString());
-
-            this.tooltipContent = `坐标: (${x}, ${y}) | 图像尺寸: ${oriWidth} × ${oriHeight}`;
+            let x = Math.round(cursorX / visWidth * oriWidth);
+            let y = Math.round(cursorY / visHeight * oriHeight);
+            this.tooltipContent = `${path}\n坐标: (${x}, ${y}) | 尺寸: ${oriWidth} × ${oriHeight}`;
             this.showTooltip = true;
             this.$refs.tooltip.style.top = `${e.clientY + 10}px`;
             this.$refs.tooltip.style.left = `${e.clientX + 10}px`;
@@ -59,44 +65,25 @@ export default {
             this.showTooltip = false;
         },
         copyImagePath(e) {
-            // 触发复制操作
+            const oriImagePath = this.pathFromEvent(e);
             const b = document.createElement("button");
             b.setAttribute("class", "cb");
-            let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
             b.setAttribute("data-clipboard-text", oriImagePath);
             document.body.appendChild(b);
             b.click();
             b.remove();
-            // 向服务器发送点击事件
-            // 请求目录下的全部文件名
-            let formData = new FormData();
-            formData.append("clickedImagePath", e.target.src);
-            let srcDirUrl = this.rootUrl + '/clickImagePath';
-
-            this.$axios.get(srcDirUrl, {params:{ // 这里必须是params，不能是别的
-                clickedImagePath: e.target.src,
-            }}).then(res => {
-                res;
-                console.log(res.data);
-                this.dirFilePathsMap = res.data;
-            }).catch(reason => {
-                console.log(reason);
-                this.errInfo = "错误信息：" + reason + "\n" + "请检查目录是否存在";
-            });
+            this.$emit('path-copied', oriImagePath);
+            this.$axios.get(this.rootUrl + '/clickImagePath', {
+                params: { clickedImagePath: e.target.src }
+            }).catch(() => {});
         },
-        changeImage(val) {
-            console.log(val);
-        },
-        
         zoomImage(e) {
-            // 双击放大图像
-            let oriImagePath = e.target.src.match("(\\d{4})(.*?)(\\?)")[2];
-            this.$parent.zoomImage(oriImagePath);
-        }
+            this.$emit('zoom', this.pathFromEvent(e));
+        },
     }
 }
 </script>
-    
+
 <style scoped>
 .folder {
     border: solid 2px cornflowerblue;
@@ -105,7 +92,6 @@ export default {
 }
 
 .label-bar {
-    /* inherits: label-bar; */
     padding-bottom: 0.5rem;
 }
 
@@ -114,8 +100,12 @@ export default {
     pointer-events: none;
     border-style: solid;
     font-size: small;
-    /* max-width: 200px; */
     background-color: cornsilk;
+    z-index: 100;
+    max-width: 60vw;
+    white-space: pre-wrap;
+    word-break: break-all;
+    padding: 4px 6px;
 }
 
 img {
