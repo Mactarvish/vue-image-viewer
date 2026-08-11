@@ -7,14 +7,24 @@ import shutil
 def change_urls_to_static(src_filepath):
     with open(src_filepath, "r") as f:
         text = f.read()
-    def eee(p):
-        m = '/static' + p.group(1)
-        return m
     if src_filepath.endswith(".html"):
-        text = re.sub(r'"(/.*?)"', eee, text)
-        text = re.sub(r"=(/[^ >]*)", lambda m: "=/static" + m.group(1) if not m.group(1).startswith("/static") else m.group(0), text)
+        # "/xxx" -> "/static/xxx", but never double-prefix
+        def repl_quoted(m):
+            path = m.group(1)
+            if path.startswith("/static/") or path == "/static":
+                return m.group(0)
+            return '"/static' + path + '"'
+        text = re.sub(r'"(/[^"]*)"', repl_quoted, text)
+
+        def repl_unquoted(m):
+            path = m.group(1)
+            if path.startswith("/static/") or path == "/static":
+                return m.group(0)
+            return "=/static" + path
+        text = re.sub(r"=(/[^ >]*)", repl_unquoted, text)
     elif src_filepath.endswith(".css"):
-        text = text.replace("url(/", "url(/static/")
+        # url(/fonts/...) -> url(/static/fonts/...); skip if already /static/
+        text = re.sub(r"url\(/((?!static/))", r"url(/static/\1", text)
     with open(src_filepath, "w") as f:
         f.write(text)
 

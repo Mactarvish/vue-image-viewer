@@ -38,15 +38,22 @@
       <div v-if="singleBrowseMode == 0">
         <div class="page-bar" v-if="processedPaths.length">
           <span>共 {{ processedPaths.length }} 张</span>
+          <el-select v-model="pageSize" size="mini" style="width: 140px; margin: 0 8px;" @change="onPageSizeChange">
+            <el-option :value="20" label="20条/页"></el-option>
+            <el-option :value="50" label="50条/页"></el-option>
+            <el-option :value="100" label="100条/页"></el-option>
+            <el-option :value="200" label="200条/页"></el-option>
+            <el-option :value="0" label="不分页（全部）"></el-option>
+          </el-select>
           <el-pagination
-            layout="sizes, prev, pager, next, jumper"
+            v-if="pageSize > 0"
+            layout="prev, pager, next, jumper"
             :total="processedPaths.length"
             :page-size="pageSize"
             :current-page="currentPage"
-            :page-sizes="[20, 50, 100, 200]"
-            @size-change="onPageSizeChange"
             @current-change="onPageChange">
           </el-pagination>
+          <span v-else class="page-all-hint">已全量显示</span>
         </div>
         <div v-if="dirLoading" class="list-loading-banner">加载中...</div>
         <ImageList
@@ -190,6 +197,9 @@ export default {
   },
   computed: {
     pagePaths() {
+      if (!this.pageSize || this.pageSize <= 0) {
+        return this.processedPaths;
+      }
       const start = (this.currentPage - 1) * this.pageSize;
       return this.processedPaths.slice(start, start + this.pageSize);
     },
@@ -274,8 +284,7 @@ export default {
         this.rebuildProcessedPaths();
       }
     },
-    onPageSizeChange(size) {
-      this.pageSize = size;
+    onPageSizeChange() {
       this.currentPage = 1;
     },
     onPageChange(page) {
@@ -408,7 +417,7 @@ export default {
       let cursorY = e.clientY - imageRect.y;
       let x = Math.round(cursorX / visWidth * oriWidth);
       let y = Math.round(cursorY / visHeight * oriHeight);
-      this.zoomTooltipContent = `${this.zoomedImagePath}\n坐标: (${x}, ${y}) | 尺寸: ${oriWidth} × ${oriHeight} | 缩放: ${this.zoomScale.toFixed(2)}x`;
+      this.zoomTooltipContent = `${this.zoomedImagePath}\n坐标: (${x}, ${y}) | 比例: (${(x / oriWidth * 100).toFixed(1)}%, ${(y / oriHeight * 100).toFixed(1)}%) | 尺寸: ${oriWidth} × ${oriHeight} | 缩放: ${this.zoomScale.toFixed(2)}x`;
       this.showZoomTooltip = true;
       this.$refs.zoomTooltip.style.top = `${e.clientY + 10}px`;
       this.$refs.zoomTooltip.style.left = `${e.clientX + 10}px`;
@@ -522,6 +531,11 @@ a {
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+.page-all-hint {
+  color: #666;
+  font-size: 13px;
 }
 
 .list-loading-banner {

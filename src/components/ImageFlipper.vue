@@ -56,7 +56,7 @@ export default {
             let cursorY = e.clientY - imageRect.y;
             let x = Math.round(cursorX / visWidth * oriWidth);
             let y = Math.round(cursorY / visHeight * oriHeight);
-            this.tooltipContent = `${path}\n坐标: (${x}, ${y}) | 尺寸: ${oriWidth} × ${oriHeight}`;
+            this.tooltipContent = `${path}\n坐标: (${x}, ${y}) | 比例: (${(x / oriWidth * 100).toFixed(1)}%, ${(y / oriHeight * 100).toFixed(1)}%) | 尺寸: ${oriWidth} × ${oriHeight}`;
             this.showTooltip = true;
             this.$refs.tooltip.style.top = `${e.clientY + 10}px`;
             this.$refs.tooltip.style.left = `${e.clientX + 10}px`;
