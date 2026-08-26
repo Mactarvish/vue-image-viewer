@@ -23,4 +23,4 @@ pnpm-debug.log*
 *.sw?
 
 pgs
-logs
+logs__pycache__

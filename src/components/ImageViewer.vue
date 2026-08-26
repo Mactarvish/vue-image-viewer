@@ -63,8 +63,11 @@
           :srcImagePaths="pagePaths"
           :width="imageShowWidth"
           :timestamp="timestamp.toString()"
+          :clickMode="clickMode"
+          :annoPending="annoPending"
           @zoom="zoomImage"
-          @path-copied="onPathCopied">
+          @path-copied="onPathCopied"
+          @annotate-click="onAnnotateClick">
         </ImageList>
       </div>
       <div v-else class="show-single">
@@ -75,8 +78,11 @@
           :srcImagePaths="processedPaths"
           :width="imageShowWidth"
           :timestamp="timestamp.toString()"
+          :clickMode="clickMode"
+          :annoPending="annoPending"
           @zoom="zoomImage"
-          @path-copied="onPathCopied">
+          @path-copied="onPathCopied"
+          @annotate-click="onAnnotateClick">
         </ImageFlipper>
       </div>
 
@@ -96,7 +102,7 @@
       </div>
 
       <div class="filter-options">
-        <div class="label">文件名筛选</div>
+        <div class="label">路径筛选</div>
         <el-input v-model="nameInclude" placeholder="包含（子串）" clearable size="small"
                   @input="onFilterChange"></el-input>
         <el-input v-model="nameExclude" placeholder="排除（子串）" clearable size="small"
@@ -120,6 +126,19 @@
           <el-radio label="path">自然序</el-radio>
           <el-radio label="random">随机乱序</el-radio>
         </el-radio-group>
+      </div>
+
+      <div class="sort-options">
+        <div class="label">单击行为</div>
+        <el-radio-group v-model="clickMode" @change="clearAnnoPending">
+          <el-radio label="copy">复制路径</el-radio>
+          <el-radio label="anno">拉框标注</el-radio>
+        </el-radio-group>
+      </div>
+      <div v-if="clickMode === 'anno'" class="filter-options">
+        <div class="label">标注类别</div>
+        <el-input v-model="annoLabel" placeholder="object" size="small" clearable></el-input>
+        <div class="anno-hint">点两个对角保存 labelme json；Esc 取消当前点</div>
       </div>
 
       <el-button ref="preview" @click="browseDir" type="primary">预览</el-button>
@@ -178,6 +197,9 @@ export default {
       pageSize: 50,
       currentPage: 1,
       dirLoading: false,
+      clickMode: "copy",
+      annoLabel: "object",
+      annoPending: null,
 
       clickedImagePath: "",
       clickedImageName: "",
@@ -298,10 +320,10 @@ export default {
       const include = (this.nameInclude || "").trim();
       const exclude = (this.nameExclude || "").trim();
       if (include || exclude) {
+        // 路径筛选：子串匹配整个路径（包含/排除）
         paths = paths.filter(p => {
-          const name = basename(p);
-          if (include && !name.includes(include)) return false;
-          if (exclude && name.includes(exclude)) return false;
+          if (include && !p.includes(include)) return false;
+          if (exclude && p.includes(exclude)) return false;
           return true;
         });
       }
@@ -329,6 +351,52 @@ export default {
     onPathCopied(path) {
       this.clickedImagePath = path;
       this.clickedImageName = basename(path);
+    },
+    clearAnnoPending() {
+      this.annoPending = null;
+    },
+    onAnnotateClick(payload) {
+      if (!payload || !payload.imagePath) return;
+      if (!this.annoPending || this.annoPending.imagePath !== payload.imagePath) {
+        this.annoPending = {
+          imagePath: payload.imagePath,
+          x: payload.x,
+          y: payload.y,
+          displayX: payload.displayX,
+          displayY: payload.displayY,
+          naturalWidth: payload.naturalWidth,
+          naturalHeight: payload.naturalHeight,
+        };
+        this.$message(`已选第一点 (${payload.x}, ${payload.y})，再点对角`);
+        return;
+      }
+      const p1 = [this.annoPending.x, this.annoPending.y];
+      const p2 = [payload.x, payload.y];
+      const dx = Math.abs(p1[0] - p2[0]);
+      const dy = Math.abs(p1[1] - p2[1]);
+      if (dx < 3 && dy < 3) {
+        this.$message.warning("框太小，已忽略");
+        this.annoPending = null;
+        return;
+      }
+      const pending = this.annoPending;
+      this.annoPending = null;
+      this.$axios.post(this.rootUrl + '/saveLabelme', {
+        imagePath: pending.imagePath,
+        label: (this.annoLabel || "object").trim() || "object",
+        points: [p1, p2],
+        imageWidth: pending.naturalWidth,
+        imageHeight: pending.naturalHeight,
+      }).then(res => {
+        if (res.data && res.data.state === "ok") {
+          this.$message.success(`已保存 ${basename(res.data.jsonPath)}（共 ${res.data.shapeCount} 框）`);
+        } else {
+          this.$message.error((res.data && res.data.message) || "保存失败");
+        }
+      }).catch(err => {
+        const msg = (err.response && err.response.data && err.response.data.message) || err.message || err;
+        this.$message.error("保存失败：" + msg);
+      });
     },
 
     zoomImage(imagePath) {
@@ -391,11 +459,20 @@ export default {
       this.zoomPanning = false;
     },
     onGlobalKeydown(e) {
-      if (!this.showZoomModal) return;
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       if (e.key === 'Escape') {
-        this.closeZoomModal();
-      } else if (e.key === 'ArrowLeft') {
+        if (this.showZoomModal) {
+          this.closeZoomModal();
+          return;
+        }
+        if (this.annoPending) {
+          this.clearAnnoPending();
+          this.$message("已取消标注第一点");
+        }
+        return;
+      }
+      if (!this.showZoomModal) return;
+      if (e.key === 'ArrowLeft') {
         e.preventDefault();
         this.zoomPrev();
       } else if (e.key === 'ArrowRight') {
@@ -514,12 +591,13 @@ a {
     margin-bottom: 5px;
     font-weight: bold;
   }
+}
 
-  .el-radio-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
+.anno-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
 }
 
 .page-bar {

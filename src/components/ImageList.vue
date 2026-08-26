@@ -1,12 +1,29 @@
 <template>
-    <div ref="root" class="folder" :class="{ 'is-loading': pageLoading }">
+    <div ref="root" class="folder" :class="{ 'is-loading': pageLoading, 'anno-mode': clickMode === 'anno' }">
         <div v-if="pageLoading" class="loading-banner">加载中...</div>
         <div ref="tooltip" class="tooltip" v-show="showTooltip">{{ tooltipContent }}</div>
         <h3>{{ srcDir }} <span class="count">(本页 {{ srcImagePaths.length }} 张)</span></h3>
-        <img v-for="srcImagePath in srcImagePaths" :key="srcImagePath"
-            :src="rootUrl + srcImagePath + `?timestamp=${timestamp}`" :width="width" :alt="srcImagePath"
-            @load="onImgSettled" @error="onImgSettled"
-            @click="copyImagePath" @dblclick="zoomImage" @mousemove="updateTooltip" @mouseleave="closeTooltip">
+        <span
+            v-for="srcImagePath in srcImagePaths"
+            :key="srcImagePath"
+            class="img-wrap"
+            :class="{ 'has-pending': annoPending && annoPending.imagePath === srcImagePath }">
+            <img
+                :src="rootUrl + srcImagePath + `?timestamp=${timestamp}`"
+                :width="width"
+                :alt="srcImagePath"
+                @load="onImgSettled"
+                @error="onImgSettled"
+                @click="onImageClick"
+                @dblclick="onImageDblclick"
+                @mousemove="updateTooltip"
+                @mouseleave="closeTooltip">
+            <i
+                v-if="annoPending && annoPending.imagePath === srcImagePath"
+                class="anno-pt"
+                :style="{ left: annoPending.displayX + 'px', top: annoPending.displayY + 'px' }">
+            </i>
+        </span>
     </div>
 </template>
 
@@ -18,6 +35,14 @@ export default {
         srcDir: String,
         srcImagePaths: Array,
         timestamp: String,
+        clickMode: {
+            type: String,
+            default: "copy"
+        },
+        annoPending: {
+            type: Object,
+            default: null
+        },
         width: {
             type: Number,
             default: 200
@@ -49,6 +74,27 @@ export default {
     methods: {
         pathFromEvent(e) {
             return e.target.alt || "";
+        },
+        coordsFromEvent(e) {
+            const img = e.target;
+            const oriWidth = img.naturalWidth;
+            const oriHeight = img.naturalHeight;
+            const visWidth = img.offsetWidth;
+            const visHeight = img.offsetHeight;
+            const imageRect = img.getBoundingClientRect();
+            const cursorX = e.clientX - imageRect.x;
+            const cursorY = e.clientY - imageRect.y;
+            const x = Math.round(cursorX / visWidth * oriWidth);
+            const y = Math.round(cursorY / visHeight * oriHeight);
+            return {
+                imagePath: this.pathFromEvent(e),
+                x: Math.max(0, Math.min(oriWidth - 1, x)),
+                y: Math.max(0, Math.min(oriHeight - 1, y)),
+                displayX: cursorX,
+                displayY: cursorY,
+                naturalWidth: oriWidth,
+                naturalHeight: oriHeight,
+            };
         },
         clearLoadTimer() {
             if (this.loadTimer) {
@@ -94,9 +140,11 @@ export default {
             this.checkAllSettled();
         },
         updateTooltip(e) {
+            if (e.target.tagName !== 'IMG') return;
             const path = this.pathFromEvent(e);
             let oriWidth = e.target.naturalWidth;
             let oriHeight = e.target.naturalHeight;
+            if (!oriWidth) return;
             let visWidth = e.target.offsetWidth;
             let visHeight = e.target.offsetHeight;
             let imageRect = e.target.getBoundingClientRect();
@@ -104,13 +152,31 @@ export default {
             let cursorY = e.clientY - imageRect.y;
             let x = Math.round(cursorX / visWidth * oriWidth);
             let y = Math.round(cursorY / visHeight * oriHeight);
-            this.tooltipContent = `${path}\n坐标: (${x}, ${y}) | 比例: (${(x / oriWidth * 100).toFixed(1)}%, ${(y / oriHeight * 100).toFixed(1)}%) | 尺寸: ${oriWidth} × ${oriHeight}`;
+            let tip = `${path}\n坐标: (${x}, ${y}) | 比例: (${(x / oriWidth * 100).toFixed(1)}%, ${(y / oriHeight * 100).toFixed(1)}%) | 尺寸: ${oriWidth} × ${oriHeight}`;
+            if (this.clickMode === 'anno') {
+                tip += this.annoPending ? '\n[标注] 再点对角完成框' : '\n[标注] 点击选第一对角点';
+            }
+            this.tooltipContent = tip;
             this.showTooltip = true;
             this.$refs.tooltip.style.top = `${e.clientY + 10}px`;
             this.$refs.tooltip.style.left = `${e.clientX + 10}px`;
         },
         closeTooltip() {
             this.showTooltip = false;
+        },
+        onImageClick(e) {
+            if (this.clickMode === 'anno') {
+                this.$emit('annotate-click', this.coordsFromEvent(e));
+                return;
+            }
+            this.copyImagePath(e);
+        },
+        onImageDblclick(e) {
+            if (this.clickMode === 'anno') {
+                e.preventDefault();
+                return;
+            }
+            this.zoomImage(e);
         },
         copyImagePath(e) {
             const oriImagePath = this.pathFromEvent(e);
@@ -145,6 +211,10 @@ export default {
     opacity: 0.2;
 }
 
+.folder.anno-mode img {
+    cursor: crosshair;
+}
+
 .loading-banner {
     position: sticky;
     top: 3rem;
@@ -172,8 +242,30 @@ export default {
     padding: 4px 6px;
 }
 
-img {
+.img-wrap {
+    position: relative;
+    display: inline-block;
     margin-right: 5px;
+    vertical-align: top;
+}
+
+.img-wrap img {
+    margin-right: 0;
+    display: block;
+}
+
+.anno-pt {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    margin-top: -5px;
+    border-radius: 50%;
+    background: #e53935;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px #e53935;
+    pointer-events: none;
+    z-index: 2;
 }
 
 h3 {
