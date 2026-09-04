@@ -34,57 +34,40 @@
     </div>
 
     <main class="main">
-      <router-view></router-view>
-      <div v-if="singleBrowseMode == 0">
-        <div class="page-bar" v-if="processedPaths.length">
-          <span>共 {{ processedPaths.length }} 张</span>
-          <el-select v-model="pageSize" size="mini" style="width: 140px; margin: 0 8px;" @change="onPageSizeChange">
-            <el-option :value="20" label="20条/页"></el-option>
-            <el-option :value="50" label="50条/页"></el-option>
-            <el-option :value="100" label="100条/页"></el-option>
-            <el-option :value="200" label="200条/页"></el-option>
-            <el-option :value="0" label="不分页（全部）"></el-option>
-          </el-select>
-          <el-pagination
-            v-if="pageSize > 0"
-            layout="prev, pager, next, jumper"
-            :total="processedPaths.length"
-            :page-size="pageSize"
-            :current-page="currentPage"
-            @current-change="onPageChange">
-          </el-pagination>
-          <span v-else class="page-all-hint">已全量显示</span>
-        </div>
+      <!-- 每个子目录独立分组展示：列表模式下每组一个 ImageList，单图模式下每组一个 ImageFlipper -->
+      <template v-if="singleBrowseMode == 0">
         <div v-if="dirLoading" class="list-loading-banner">加载中...</div>
-        <ImageList
-          v-if="pagePaths.length"
-          :rootUrl="rootUrl"
-          :srcDir="srcDir"
-          :srcImagePaths="pagePaths"
-          :width="imageShowWidth"
-          :timestamp="timestamp.toString()"
-          :clickMode="clickMode"
-          :annoPending="annoPending"
-          @zoom="zoomImage"
-          @path-copied="onPathCopied"
-          @annotate-click="onAnnotateClick">
-        </ImageList>
-      </div>
-      <div v-else class="show-single">
-        <ImageFlipper
-          v-if="processedPaths.length"
-          :rootUrl="rootUrl"
-          :srcDir="srcDir"
-          :srcImagePaths="processedPaths"
-          :width="imageShowWidth"
-          :timestamp="timestamp.toString()"
-          :clickMode="clickMode"
-          :annoPending="annoPending"
-          @zoom="zoomImage"
-          @path-copied="onPathCopied"
-          @annotate-click="onAnnotateClick">
-        </ImageFlipper>
-      </div>
+        <div id="path-and-image" v-for="group in groupedPaths" :key="group.dir">
+          <ImageList
+            :rootUrl="rootUrl"
+            :srcDir="group.dir"
+            :srcImagePaths="group.paths"
+            :width="imageShowWidth"
+            :timestamp="timestamp.toString()"
+            :clickMode="clickMode"
+            :annoPending="annoPending"
+            @zoom="zoomImage"
+            @path-copied="onPathCopied"
+            @annotate-click="onAnnotateClick">
+          </ImageList>
+        </div>
+      </template>
+      <template v-else>
+        <div id="path-and-image" class="show-single-group" v-for="group in groupedPaths" :key="group.dir">
+          <ImageFlipper
+            :rootUrl="rootUrl"
+            :srcDir="group.dir"
+            :srcImagePaths="group.paths"
+            :width="imageShowWidth"
+            :timestamp="timestamp.toString()"
+            :clickMode="clickMode"
+            :annoPending="annoPending"
+            @zoom="zoomImage"
+            @path-copied="onPathCopied"
+            @annotate-click="onAnnotateClick">
+          </ImageFlipper>
+        </div>
+      </template>
 
       <div>{{ errInfo }}</div>
     </main>
@@ -103,10 +86,9 @@
 
       <div class="filter-options">
         <div class="label">路径筛选</div>
-        <el-input v-model="nameInclude" placeholder="包含（子串）" clearable size="small"
-                  @input="onFilterChange"></el-input>
+        <el-input v-model="nameInclude" placeholder="包含（子串）" clearable size="small"></el-input>
         <el-input v-model="nameExclude" placeholder="排除（子串）" clearable size="small"
-                  style="margin-top: 4px;" @input="onFilterChange"></el-input>
+                  style="margin-top: 4px;"></el-input>
       </div>
 
       <el-radio-group v-model="singleBrowseMode">
@@ -172,6 +154,20 @@ function naturalCompare(a, b) {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 }
 
+// 历史路径持久化 key（localStorage）
+const HISTORY_STORAGE_KEY = 'image-viewer-history-dirs';
+
+// 从 localStorage 读取历史路径，解析失败则忽略
+function loadHistoryDirs() {
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(d => typeof d === 'string') : [];
+  } catch (e) {
+    return [];
+  }
+}
+
 export default {
   name: 'ImageViewer',
   components: {
@@ -181,7 +177,6 @@ export default {
   data() {
     return {
       rawDirFilePathsMap: {},
-      processedPaths: [],
       srcDir: "",
       errInfo: "",
       rootUrl: "",
@@ -190,12 +185,10 @@ export default {
       singleBrowseMode: '0',
       imageShowWidth: 200,
       timestamp: "",
-      historyDirs: [],
+      historyDirs: loadHistoryDirs(),
       sortMode: 'path',
       nameInclude: "",
       nameExclude: "",
-      pageSize: 50,
-      currentPage: 1,
       dirLoading: false,
       clickMode: "copy",
       annoLabel: "object",
@@ -218,12 +211,36 @@ export default {
     };
   },
   computed: {
-    pagePaths() {
-      if (!this.pageSize || this.pageSize <= 0) {
-        return this.processedPaths;
-      }
-      const start = (this.currentPage - 1) * this.pageSize;
-      return this.processedPaths.slice(start, start + this.pageSize);
+    // 全局扁平列表（供放大模态框跨目录翻页、总数统计使用）
+    processedPaths() {
+      return this.groupedPaths.reduce((acc, group) => acc.concat(group.paths), []);
+    },
+    // 按子目录分组：目录间自然序，组内按排序方式处理；全局扁平顺序见 processedPaths
+    groupedPaths() {
+      const include = (this.nameInclude || "").trim();
+      const exclude = (this.nameExclude || "").trim();
+      const groups = Object.keys(this.rawDirFilePathsMap)
+        .sort(naturalCompare)
+        .map(dir => {
+          let paths = this.rawDirFilePathsMap[dir] || [];
+          if (include || exclude) {
+            // 路径筛选：子串匹配整个路径（包含/排除）
+            paths = paths.filter(p => {
+              if (include && !p.includes(include)) return false;
+              if (exclude && p.includes(exclude)) return false;
+              return true;
+            });
+          }
+          paths = paths.slice();
+          if (this.sortMode === 'random') {
+            this.shuffleArray(paths);
+          } else {
+            paths.sort(naturalCompare);
+          }
+          return { dir, paths };
+        })
+        .filter(group => group.paths.length > 0);
+      return groups;
     },
     zoomImageStyle() {
       return {
@@ -233,9 +250,18 @@ export default {
     },
   },
   watch: {
+    // 历史路径变化即落盘，刷新后可恢复
+    historyDirs: {
+      deep: true,
+      handler(val) {
+        try {
+          localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(val));
+        } catch (e) { /* 存储不可用时静默降级 */ }
+      },
+    },
     sortMode() {
+      // 分组列表是 computed，会自动重算；这里仅刷新时间戳强制图片重新加载
       if (Object.keys(this.rawDirFilePathsMap).length > 0) {
-        this.rebuildProcessedPaths();
         this.timestamp = new Date().getTime();
       }
     },
@@ -277,7 +303,6 @@ export default {
       formData.append("postfixes", this.checkedPostfixes);
       let srcDirUrl = this.rootUrl + '/getAllImagePaths';
       this.rawDirFilePathsMap = {};
-      this.processedPaths = [];
       this.dirLoading = true;
       this.$axios.post(srcDirUrl, formData).then(res => {
         const data = res.data;
@@ -288,7 +313,6 @@ export default {
           return;
         }
         this.rawDirFilePathsMap = data;
-        this.rebuildProcessedPaths();
         this.timestamp = new Date().getTime();
         this.errInfo = "";
         if (!this.historyDirs.includes(this.srcDir)) {
@@ -300,40 +324,6 @@ export default {
       }).finally(() => {
         this.dirLoading = false;
       });
-    },
-    onFilterChange() {
-      if (Object.keys(this.rawDirFilePathsMap).length > 0) {
-        this.rebuildProcessedPaths();
-      }
-    },
-    onPageSizeChange() {
-      this.currentPage = 1;
-    },
-    onPageChange(page) {
-      this.currentPage = page;
-    },
-    rebuildProcessedPaths() {
-      let paths = [];
-      for (const dir of Object.keys(this.rawDirFilePathsMap)) {
-        paths = paths.concat(this.rawDirFilePathsMap[dir]);
-      }
-      const include = (this.nameInclude || "").trim();
-      const exclude = (this.nameExclude || "").trim();
-      if (include || exclude) {
-        // 路径筛选：子串匹配整个路径（包含/排除）
-        paths = paths.filter(p => {
-          if (include && !p.includes(include)) return false;
-          if (exclude && p.includes(exclude)) return false;
-          return true;
-        });
-      }
-      if (this.sortMode === 'random') {
-        this.shuffleArray(paths);
-      } else {
-        paths.sort(naturalCompare);
-      }
-      this.processedPaths = paths;
-      this.currentPage = 1;
     },
     RemoveHistoryItem(dir) {
       this.historyDirs.splice(this.historyDirs.indexOf(dir), 1);
@@ -559,6 +549,10 @@ a {
   justify-content: space-evenly;
 }
 
+.show-single-group {
+  margin: 0 1rem;
+}
+
 .label-bar {
   display: flex;
   align-items: center;
@@ -598,22 +592,6 @@ a {
   font-size: 12px;
   color: #666;
   line-height: 1.4;
-}
-
-.page-bar {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.7);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.page-all-hint {
-  color: #666;
-  font-size: 13px;
 }
 
 .list-loading-banner {
