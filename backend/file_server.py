@@ -5,24 +5,31 @@ import json
 from collections import defaultdict
 import argparse
 
-from flask import Flask, request, send_from_directory, jsonify, render_template
+from flask import Flask, request, send_from_directory, jsonify
 from flask_cors import CORS
 
+
+_DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "../dist/static"))
 
 if sys.gettrace():
     app = Flask(__name__)
 else:
     app = Flask(__name__,
-                template_folder="../dist/static",
-                static_folder="../dist/static",
+                template_folder=_DIST,
+                static_folder=_DIST,
                 )
+# rebuild 后无需重启也能读到新的 index.html（避免仍引用已删除的旧 hash js）
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.jinja_env.auto_reload = True
+app.jinja_env.cache = None
 CORS(app)
 
 
 @app.route('/')
 @app.route('/index')
 def index():
-    return render_template('index.html')
+    # 直接按文件发送，不走 Jinja 模板缓存
+    return send_from_directory(_DIST, "index.html")
 
 
 @app.route('/clickImagePath')
