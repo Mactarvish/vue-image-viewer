@@ -33,7 +33,7 @@
       </div>
     </div>
 
-    <main class="main">
+    <main class="main" :style="{ paddingLeft: navWidth + 'px' }">
       <!-- 每个子目录独立分组展示：列表模式下每组一个 ImageList，单图模式下每组一个 ImageFlipper -->
       <template v-if="singleBrowseMode == 0">
         <div v-if="dirLoading" class="list-loading-banner">加载中...</div>
@@ -72,9 +72,17 @@
       <div>{{ errInfo }}</div>
     </main>
 
-    <nav>
+    <nav :style="{ width: navWidth + 'px' }">
+      <div class="nav-resize" @mousedown.prevent="onNavResizeStart"></div>
       <div>
         <el-input v-model="srcDir" @keyup.enter.native="browseDir()" placeholder="展示该目录的图片" clearable></el-input>
+      </div>
+
+      <div class="filter-options">
+        <div class="label">默认目录前缀</div>
+        <el-input v-model="defaultPrefix" placeholder="/data/mck/mmsegmentation" clearable size="small"
+                  @change="persistDefaultPrefix"></el-input>
+        <div class="anno-hint">相对路径将自动拼到此前缀下</div>
       </div>
 
       <div>参与遍历的后缀名：</div>
@@ -98,7 +106,7 @@
 
       <div class="label-bar">
         <div class="label">图片显示宽度</div>
-        <el-slider class="bar" v-model="imageShowWidth" :step="10" :max="1000" :min="10">
+        <el-slider class="bar" v-model="imageShowWidth" :step="10" :max="1400" :min="10">
         </el-slider>
       </div>
 
@@ -126,8 +134,8 @@
       <el-button ref="preview" @click="browseDir" type="primary">预览</el-button>
 
       <div class="history">
-        <el-tag style="height: initial; white-space: initial;" v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)">
-          <span @click="clickHistory($event)" class="history-dir">{{ dir }}</span>
+        <el-tag class="history-tag" v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)">
+          <span @click="clickHistory(dir)" class="history-dir">{{ dir }}</span>
         </el-tag>
       </div>
       <div class="info-for-clicked-image">
@@ -156,6 +164,11 @@ function naturalCompare(a, b) {
 
 // 历史路径持久化 key（localStorage）
 const HISTORY_STORAGE_KEY = 'image-viewer-history-dirs';
+const PREFIX_STORAGE_KEY = 'image-viewer-default-prefix';
+const NAV_WIDTH_STORAGE_KEY = 'image-viewer-nav-width';
+const NAV_WIDTH_DEFAULT = 320;
+const NAV_WIDTH_MIN = 200;
+const NAV_WIDTH_MAX = 640;
 
 // 从 localStorage 读取历史路径，解析失败则忽略
 function loadHistoryDirs() {
@@ -166,6 +179,33 @@ function loadHistoryDirs() {
   } catch (e) {
     return [];
   }
+}
+
+function loadDefaultPrefix() {
+  try {
+    const v = localStorage.getItem(PREFIX_STORAGE_KEY);
+    return typeof v === 'string' ? v : '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function loadNavWidth() {
+  try {
+    const n = parseInt(localStorage.getItem(NAV_WIDTH_STORAGE_KEY), 10);
+    if (Number.isFinite(n)) {
+      return Math.min(NAV_WIDTH_MAX, Math.max(NAV_WIDTH_MIN, n));
+    }
+  } catch (e) { /* ignore */ }
+  return NAV_WIDTH_DEFAULT;
+}
+
+function joinPrefix(prefix, rel) {
+  const p = (prefix || '').replace(/\/+$/, '');
+  const r = (rel || '').replace(/^\/+/, '');
+  if (!p) return rel;
+  if (!r) return p;
+  return p + '/' + r;
 }
 
 export default {
@@ -186,6 +226,9 @@ export default {
       imageShowWidth: 200,
       timestamp: "",
       historyDirs: loadHistoryDirs(),
+      defaultPrefix: loadDefaultPrefix(),
+      navWidth: loadNavWidth(),
+      navResizing: false,
       sortMode: 'path',
       nameInclude: "",
       nameExclude: "",
@@ -290,16 +333,62 @@ export default {
     });
 
     window.addEventListener('keydown', this.onGlobalKeydown);
+    window.addEventListener('mousemove', this.onNavResizeMove);
+    window.addEventListener('mouseup', this.onNavResizeEnd);
   },
   beforeDestroy() {
     window.removeEventListener('keydown', this.onGlobalKeydown);
+    window.removeEventListener('mousemove', this.onNavResizeMove);
+    window.removeEventListener('mouseup', this.onNavResizeEnd);
     if (this.clipboard) this.clipboard.destroy();
   },
   methods: {
+    persistDefaultPrefix() {
+      try {
+        localStorage.setItem(PREFIX_STORAGE_KEY, this.defaultPrefix || '');
+      } catch (e) { /* ignore */ }
+    },
+    persistNavWidth() {
+      try {
+        localStorage.setItem(NAV_WIDTH_STORAGE_KEY, String(this.navWidth));
+      } catch (e) { /* ignore */ }
+    },
+    onNavResizeStart() {
+      this.navResizing = true;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    },
+    onNavResizeMove(e) {
+      if (!this.navResizing) return;
+      this.navWidth = Math.min(NAV_WIDTH_MAX, Math.max(NAV_WIDTH_MIN, e.clientX));
+    },
+    onNavResizeEnd() {
+      if (!this.navResizing) return;
+      this.navResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      this.persistNavWidth();
+    },
+    resolveSrcDir() {
+      const raw = (this.srcDir || '').trim();
+      if (!raw) return '';
+      // 绝对路径或 ~ 开头：不拼前缀
+      if (raw.startsWith('/') || raw.startsWith('~')) return raw;
+      return joinPrefix(this.defaultPrefix, raw);
+    },
     browseDir() {
+      const resolvedDir = this.resolveSrcDir();
+      if (!resolvedDir) {
+        this.$message.warning('请输入目录路径');
+        return;
+      }
+      // 相对路径解析后回填到输入框，方便确认实际路径
+      if (resolvedDir !== this.srcDir.trim()) {
+        this.srcDir = resolvedDir;
+      }
       let formData = new FormData();
       formData.append("recursive", true);
-      formData.append("srcDir", this.srcDir);
+      formData.append("srcDir", resolvedDir);
       formData.append("postfixes", this.checkedPostfixes);
       let srcDirUrl = this.rootUrl + '/getAllImagePaths';
       this.rawDirFilePathsMap = {};
@@ -309,14 +398,14 @@ export default {
         const state = data.state;
         delete data.state;
         if (state == "not exist") {
-          this.$message(`目录 ${this.srcDir} 不存在！`);
+          this.$message(`目录 ${resolvedDir} 不存在！`);
           return;
         }
         this.rawDirFilePathsMap = data;
         this.timestamp = new Date().getTime();
         this.errInfo = "";
-        if (!this.historyDirs.includes(this.srcDir)) {
-          this.historyDirs.push(this.srcDir);
+        if (!this.historyDirs.includes(resolvedDir)) {
+          this.historyDirs.push(resolvedDir);
         }
       }).catch(reason => {
         console.log(reason);
@@ -328,8 +417,8 @@ export default {
     RemoveHistoryItem(dir) {
       this.historyDirs.splice(this.historyDirs.indexOf(dir), 1);
     },
-    clickHistory(e) {
-      this.srcDir = e.target.textContent;
+    clickHistory(dir) {
+      this.srcDir = dir;
       this.browseDir();
     },
     shuffleArray(array) {
@@ -522,10 +611,28 @@ nav {
   position: fixed;
   z-index: 2;
   padding: 1rem;
+  overflow-x: hidden;
   overflow-y: auto;
 
   >* {
     margin: 0.5rem 0;
+  }
+}
+
+.nav-resize {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  margin: 0 !important;
+  z-index: 3;
+  background: transparent;
+
+  &:hover,
+  &:active {
+    background: rgba(66, 185, 131, 0.35);
   }
 }
 
@@ -569,6 +676,46 @@ a {
 .info-for-clicked-image {
   margin-top: auto;
   word-wrap: break-word;
+}
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.history-tag {
+  height: auto !important;
+  white-space: normal !important;
+  max-width: 100%;
+  line-height: 1.4;
+  padding: 4px 8px;
+  display: inline-flex !important;
+  align-items: flex-start;
+  box-sizing: border-box;
+
+  .el-tag__content {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  .el-tag__close {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+}
+
+.history-dir {
+  display: inline;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .history-dir:hover {
