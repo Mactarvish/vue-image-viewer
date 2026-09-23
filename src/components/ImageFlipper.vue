@@ -3,15 +3,27 @@
         <div ref="tooltip" class="tooltip" v-show="showTooltip">{{ tooltipContent }}</div>
         <h3>{{ srcDir }}</h3>
         <div v-if="srcImagePaths.length">
-            <h6 style="margin: 0;">{{ srcImagePaths[curImageIndex - 1] }}</h6>
+            <h6 style="margin: 0;">{{ currentPath }}</h6>
             <span class="img-wrap"
-                  :class="{ 'has-pending': annoPending && annoPending.imagePath === srcImagePaths[curImageIndex - 1] }">
-                <img :src="rootUrl + srcImagePaths[curImageIndex - 1] + `?timestamp=${timestamp}`"
-                    :width="width" :alt="srcImagePaths[curImageIndex - 1]"
+                  :class="{ 'has-pending': annoPending && annoPending.imagePath === currentPath }">
+                <button
+                    v-if="isPly(currentPath)"
+                    type="button"
+                    class="ply-card"
+                    :style="{ width: width + 'px', height: Math.max(120, Math.round(width * 0.75)) + 'px' }"
+                    :title="currentPath"
+                    @click="onPlyClick(currentPath)">
+                    <span class="ply-badge">PLY</span>
+                    <span class="ply-name">{{ baseName(currentPath) }}</span>
+                    <span class="ply-tip">点击查看点云</span>
+                </button>
+                <img v-else
+                    :src="rootUrl + currentPath + `?timestamp=${timestamp}`"
+                    :width="width" :alt="currentPath"
                     @click="onImageClick" @dblclick="onImageDblclick"
                     @mousemove="updateTooltip" @mouseleave="closeTooltip">
                 <i
-                    v-if="annoPending && annoPending.imagePath === srcImagePaths[curImageIndex - 1]"
+                    v-if="annoPending && annoPending.imagePath === currentPath"
                     class="anno-pt"
                     :style="{ left: annoPending.displayX + 'px', top: annoPending.displayY + 'px' }">
                 </i>
@@ -20,12 +32,16 @@
         <div class="label-bar">
             <span>当前是第 </span>
             <el-input-number size="mini" v-model="curImageIndex" :min="1" :max="Math.max(srcImagePaths.length, 1)"></el-input-number>
-            <span> 张，共计 {{ srcImagePaths.length }} 张 </span>
+            <span> 项，共计 {{ srcImagePaths.length }} 项 </span>
         </div>
     </div>
 </template>
 
 <script>
+function isPlyPath(p) {
+    return /\.ply$/i.test(p || '');
+}
+
 export default {
     name: "ImageFlipper",
     props: {
@@ -53,12 +69,24 @@ export default {
             curImageIndex: 1
         };
     },
+    computed: {
+        currentPath() {
+            return this.srcImagePaths[this.curImageIndex - 1] || '';
+        },
+    },
     watch: {
         srcImagePaths() {
             this.curImageIndex = 1;
         }
     },
     methods: {
+        isPly(p) {
+            return isPlyPath(p);
+        },
+        baseName(p) {
+            const parts = (p || '').replace(/\\/g, '/').split('/');
+            return parts[parts.length - 1] || p;
+        },
         pathFromEvent(e) {
             return e.target.alt || "";
         },
@@ -107,6 +135,10 @@ export default {
         },
         closeTooltip() {
             this.showTooltip = false;
+        },
+        onPlyClick(path) {
+            this.$emit('open-ply', path);
+            this.$emit('path-copied', path);
         },
         onImageClick(e) {
             if (this.clickMode === 'anno') {
@@ -173,6 +205,46 @@ export default {
 .img-wrap {
     position: relative;
     display: inline-block;
+}
+
+.ply-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 0;
+    padding: 8px;
+    border: 2px dashed #5c6bc0;
+    border-radius: 6px;
+    background: linear-gradient(160deg, #e8eaf6, #c5cae9);
+    color: #283593;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.ply-card:hover {
+    border-color: #3949ab;
+    background: linear-gradient(160deg, #c5cae9, #9fa8da);
+}
+
+.ply-badge {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 1px;
+}
+
+.ply-name {
+    font-size: 12px;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ply-tip {
+    font-size: 11px;
+    color: #5c6bc0;
 }
 
 .anno-pt {

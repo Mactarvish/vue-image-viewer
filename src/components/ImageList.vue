@@ -2,13 +2,25 @@
     <div ref="root" class="folder" :class="{ 'is-loading': pageLoading, 'anno-mode': clickMode === 'anno' }">
         <div v-if="pageLoading" class="loading-banner">加载中...</div>
         <div ref="tooltip" class="tooltip" v-show="showTooltip">{{ tooltipContent }}</div>
-        <h3>{{ srcDir }} <span class="count">(本页 {{ srcImagePaths.length }} 张)</span></h3>
+        <h3>{{ srcDir }} <span class="count">(本页 {{ srcImagePaths.length }} 项)</span></h3>
         <span
             v-for="srcImagePath in srcImagePaths"
             :key="srcImagePath"
             class="img-wrap"
             :class="{ 'has-pending': annoPending && annoPending.imagePath === srcImagePath }">
+            <button
+                v-if="isPly(srcImagePath)"
+                type="button"
+                class="ply-card"
+                :style="{ width: width + 'px', height: Math.max(120, Math.round(width * 0.75)) + 'px' }"
+                :title="srcImagePath"
+                @click="onPlyClick(srcImagePath)">
+                <span class="ply-badge">PLY</span>
+                <span class="ply-name">{{ baseName(srcImagePath) }}</span>
+                <span class="ply-tip">点击查看点云</span>
+            </button>
             <img
+                v-else
                 :src="rootUrl + srcImagePath + `?timestamp=${timestamp}`"
                 :width="width"
                 :alt="srcImagePath"
@@ -28,6 +40,10 @@
 </template>
 
 <script>
+function isPlyPath(p) {
+    return /\.ply$/i.test(p || '');
+}
+
 export default {
     name: "ImageList",
     props: {
@@ -72,6 +88,13 @@ export default {
         this.clearLoadTimer();
     },
     methods: {
+        isPly(p) {
+            return isPlyPath(p);
+        },
+        baseName(p) {
+            const parts = (p || '').replace(/\\/g, '/').split('/');
+            return parts[parts.length - 1] || p;
+        },
         pathFromEvent(e) {
             return e.target.alt || "";
         },
@@ -105,7 +128,9 @@ export default {
         beginPageLoad() {
             this.clearLoadTimer();
             const gen = ++this.loadGen;
-            this.expectedCount = (this.srcImagePaths || []).length;
+            const paths = this.srcImagePaths || [];
+            // 点云只占位，不计入图片加载等待
+            this.expectedCount = paths.filter(p => !isPlyPath(p)).length;
             if (this.expectedCount === 0) {
                 this.pageLoading = false;
                 return;
@@ -163,6 +188,10 @@ export default {
         },
         closeTooltip() {
             this.showTooltip = false;
+        },
+        onPlyClick(path) {
+            this.$emit('open-ply', path);
+            this.$emit('path-copied', path);
         },
         onImageClick(e) {
             if (this.clickMode === 'anno') {
@@ -252,6 +281,47 @@ export default {
 .img-wrap img {
     margin-right: 0;
     display: block;
+}
+
+.ply-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 0;
+    padding: 8px;
+    border: 2px dashed #5c6bc0;
+    border-radius: 6px;
+    background: linear-gradient(160deg, #e8eaf6, #c5cae9);
+    color: #283593;
+    cursor: pointer;
+    vertical-align: top;
+    box-sizing: border-box;
+}
+
+.ply-card:hover {
+    border-color: #3949ab;
+    background: linear-gradient(160deg, #c5cae9, #9fa8da);
+}
+
+.ply-badge {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 1px;
+}
+
+.ply-name {
+    font-size: 12px;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ply-tip {
+    font-size: 11px;
+    color: #5c6bc0;
 }
 
 .anno-pt {

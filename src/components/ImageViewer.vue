@@ -1,5 +1,13 @@
 <template>
   <div>
+    <!-- 点云查看模态框：按需加载单个 PLY -->
+    <PointCloudViewer
+      v-if="showPlyModal"
+      :url="rootUrl + plyPath"
+      :path="plyPath"
+      @close="closePlyModal">
+    </PointCloudViewer>
+
     <!-- 放大图像模态框 -->
     <div v-if="showZoomModal" class="zoom-modal" @click.self="closeZoomModal">
       <div class="zoom-modal-content" @click.stop>
@@ -47,6 +55,7 @@
             :clickMode="clickMode"
             :annoPending="annoPending"
             @zoom="zoomImage"
+            @open-ply="openPlyModal"
             @path-copied="onPathCopied"
             @annotate-click="onAnnotateClick">
           </ImageList>
@@ -63,6 +72,7 @@
             :clickMode="clickMode"
             :annoPending="annoPending"
             @zoom="zoomImage"
+            @open-ply="openPlyModal"
             @path-copied="onPathCopied"
             @annotate-click="onAnnotateClick">
           </ImageFlipper>
@@ -151,11 +161,16 @@
 <script>
 import ImageList from './ImageList.vue'
 import ImageFlipper from './ImageFlipper.vue'
+import PointCloudViewer from './PointCloudViewer.vue'
 import Clipboard from 'clipboard'
 
 function basename(p) {
   const parts = p.replace(/\\/g, '/').split('/');
   return parts[parts.length - 1] || p;
+}
+
+function isPlyPath(p) {
+  return /\.ply$/i.test(p || '');
 }
 
 function naturalCompare(a, b) {
@@ -213,6 +228,7 @@ export default {
   components: {
     ImageList,
     ImageFlipper,
+    PointCloudViewer,
   },
   data() {
     return {
@@ -220,8 +236,8 @@ export default {
       srcDir: "",
       errInfo: "",
       rootUrl: "",
-      filenamePostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP", ".jpeg"],
-      checkedPostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP", ".jpeg"],
+      filenamePostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP", ".jpeg", ".ply"],
+      checkedPostfixes: [".jpg", ".png", ".PNG", ".gif", ".JPG", ".bmp", ".BMP", ".jpeg", ".ply"],
       singleBrowseMode: '0',
       imageShowWidth: 200,
       timestamp: "",
@@ -251,12 +267,17 @@ export default {
       zoomPanLastY: 0,
       showZoomTooltip: false,
       zoomTooltipContent: "",
+
+      showPlyModal: false,
+      plyPath: "",
     };
   },
   computed: {
-    // 全局扁平列表（供放大模态框跨目录翻页、总数统计使用）
+    // 全局扁平列表（供放大模态框跨目录翻页、总数统计使用）；排除 ply
     processedPaths() {
-      return this.groupedPaths.reduce((acc, group) => acc.concat(group.paths), []);
+      return this.groupedPaths.reduce((acc, group) => {
+        return acc.concat(group.paths.filter(p => !isPlyPath(p)));
+      }, []);
     },
     // 按子目录分组：目录间自然序，组内按排序方式处理；全局扁平顺序见 processedPaths
     groupedPaths() {
@@ -479,11 +500,25 @@ export default {
     },
 
     zoomImage(imagePath) {
+      if (isPlyPath(imagePath)) {
+        this.openPlyModal(imagePath);
+        return;
+      }
       const idx = this.processedPaths.indexOf(imagePath);
       this.zoomIndex = idx >= 0 ? idx : 0;
       this.zoomedImagePath = imagePath;
       this.resetZoom();
       this.showZoomModal = true;
+    },
+    openPlyModal(path) {
+      if (!path) return;
+      this.closeZoomModal();
+      this.plyPath = path;
+      this.showPlyModal = true;
+    },
+    closePlyModal() {
+      this.showPlyModal = false;
+      this.plyPath = "";
     },
     closeZoomModal() {
       this.showZoomModal = false;
@@ -540,6 +575,10 @@ export default {
     onGlobalKeydown(e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       if (e.key === 'Escape') {
+        if (this.showPlyModal) {
+          this.closePlyModal();
+          return;
+        }
         if (this.showZoomModal) {
           this.closeZoomModal();
           return;
@@ -550,7 +589,7 @@ export default {
         }
         return;
       }
-      if (!this.showZoomModal) return;
+      if (!this.showZoomModal || this.showPlyModal) return;
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         this.zoomPrev();
