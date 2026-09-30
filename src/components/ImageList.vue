@@ -40,6 +40,8 @@
 </template>
 
 <script>
+import { samplePixel, formatRgb } from '../utils/pixelSample';
+
 function isPlyPath(p) {
     return /\.ply$/i.test(p || '');
 }
@@ -167,17 +169,23 @@ export default {
         updateTooltip(e) {
             if (e.target.tagName !== 'IMG') return;
             const path = this.pathFromEvent(e);
-            let oriWidth = e.target.naturalWidth;
-            let oriHeight = e.target.naturalHeight;
+            const img = e.target;
+            let oriWidth = img.naturalWidth;
+            let oriHeight = img.naturalHeight;
             if (!oriWidth) return;
-            let visWidth = e.target.offsetWidth;
-            let visHeight = e.target.offsetHeight;
-            let imageRect = e.target.getBoundingClientRect();
+            let imageRect = img.getBoundingClientRect();
+            let visWidth = imageRect.width || img.offsetWidth;
+            let visHeight = imageRect.height || img.offsetHeight;
+            if (!visWidth || !visHeight) return;
             let cursorX = e.clientX - imageRect.x;
             let cursorY = e.clientY - imageRect.y;
             let x = Math.round(cursorX / visWidth * oriWidth);
             let y = Math.round(cursorY / visHeight * oriHeight);
+            x = Math.max(0, Math.min(oriWidth - 1, x));
+            y = Math.max(0, Math.min(oriHeight - 1, y));
+            const rgb = formatRgb(samplePixel(img, x, y));
             let tip = `${path}\n坐标: (${x}, ${y}) | 比例: (${(x / oriWidth * 100).toFixed(1)}%, ${(y / oriHeight * 100).toFixed(1)}%) | 尺寸: ${oriWidth} × ${oriHeight}`;
+            if (rgb) tip += ` | ${rgb}`;
             if (this.clickMode === 'anno') {
                 tip += this.annoPending ? '\n[标注] 再点对角完成框' : '\n[标注] 点击选第一对角点';
             }

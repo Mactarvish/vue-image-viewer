@@ -163,6 +163,7 @@ import ImageList from './ImageList.vue'
 import ImageFlipper from './ImageFlipper.vue'
 import PointCloudViewer from './PointCloudViewer.vue'
 import Clipboard from 'clipboard'
+import { samplePixel, formatRgb } from '../utils/pixelSample'
 
 function basename(p) {
   const parts = p.replace(/\\/g, '/').split('/');
@@ -602,17 +603,24 @@ export default {
       }
     },
     updateZoomTooltip(e) {
-      let oriWidth = e.target.naturalWidth;
-      let oriHeight = e.target.naturalHeight;
+      const img = e.target;
+      let oriWidth = img.naturalWidth;
+      let oriHeight = img.naturalHeight;
       if (!oriWidth) return;
-      let visWidth = e.target.offsetWidth;
-      let visHeight = e.target.offsetHeight;
-      let imageRect = e.target.getBoundingClientRect();
+      let imageRect = img.getBoundingClientRect();
+      let visWidth = imageRect.width || img.offsetWidth;
+      let visHeight = imageRect.height || img.offsetHeight;
+      if (!visWidth || !visHeight) return;
       let cursorX = e.clientX - imageRect.x;
       let cursorY = e.clientY - imageRect.y;
       let x = Math.round(cursorX / visWidth * oriWidth);
       let y = Math.round(cursorY / visHeight * oriHeight);
-      this.zoomTooltipContent = `${this.zoomedImagePath}\n坐标: (${x}, ${y}) | 比例: (${(x / oriWidth * 100).toFixed(1)}%, ${(y / oriHeight * 100).toFixed(1)}%) | 尺寸: ${oriWidth} × ${oriHeight} | 缩放: ${this.zoomScale.toFixed(2)}x`;
+      x = Math.max(0, Math.min(oriWidth - 1, x));
+      y = Math.max(0, Math.min(oriHeight - 1, y));
+      const rgb = formatRgb(samplePixel(img, x, y));
+      let tip = `${this.zoomedImagePath}\n坐标: (${x}, ${y}) | 比例: (${(x / oriWidth * 100).toFixed(1)}%, ${(y / oriHeight * 100).toFixed(1)}%) | 尺寸: ${oriWidth} × ${oriHeight} | 缩放: ${this.zoomScale.toFixed(2)}x`;
+      if (rgb) tip += ` | ${rgb}`;
+      this.zoomTooltipContent = tip;
       this.showZoomTooltip = true;
       this.$refs.zoomTooltip.style.top = `${e.clientY + 10}px`;
       this.$refs.zoomTooltip.style.left = `${e.clientX + 10}px`;
