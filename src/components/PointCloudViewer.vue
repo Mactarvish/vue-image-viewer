@@ -108,9 +108,13 @@ export default {
       this.scene.add(dir);
 
       const grid = new THREE.GridHelper(2, 20, 0x444444, 0x2a2a2a);
+      // GridHelper 默认在 XZ 平面；转 90° 使其在 XY 平面（法线沿 Z），贴合相机系点云
+      grid.rotation.x = Math.PI / 2;
       grid.position.y = 0;
       this.grid = grid;
       this.scene.add(grid);
+
+      this.buildAxes();
 
       this._animating = true;
       const tick = () => {
@@ -211,19 +215,20 @@ export default {
       return g;
     },
     applyHeightColors(geometry) {
+      // 伪彩沿 X 轴渐变（近→远）
       const pos = geometry.attributes.position;
       const n = pos.count;
-      let minY = Infinity;
-      let maxY = -Infinity;
+      let minX = Infinity;
+      let maxX = -Infinity;
       for (let i = 0; i < n; i++) {
-        const y = pos.getY(i);
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+        const x = pos.getX(i);
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
       }
-      const span = maxY - minY || 1;
+      const span = maxX - minX || 1;
       const colors = new Float32Array(n * 3);
       for (let i = 0; i < n; i++) {
-        jetColor((pos.getY(i) - minY) / span, colors, i * 3);
+        jetColor((pos.getX(i) - minX) / span, colors, i * 3);
       }
       geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     },
@@ -248,10 +253,54 @@ export default {
       this.controls.update();
 
       if (this.grid) {
-        this.grid.position.set(center.x, box.min.y, center.z);
         const scale = Math.max(maxDim, 0.5);
+        // 网格在 XY 平面，贴到点云 z 最小处作背景
+        this.grid.position.set(center.x, center.y, box.min.z);
         this.grid.scale.set(scale, 1, scale);
+        // 轴跟随网格：原点同网格中心，长度约半格
+        if (this.axesGroup) {
+          this.axesGroup.position.set(center.x, center.y, box.min.z);
+          this.axesGroup.scale.setScalar(scale * 0.45);
+        }
       }
+    },
+    buildAxes() {
+      const defs = [
+        { dir: new THREE.Vector3(1, 0, 0), color: 0xff5252, label: 'X' },
+        { dir: new THREE.Vector3(0, 1, 0), color: 0x66bb6a, label: 'Y' },
+        { dir: new THREE.Vector3(0, 0, 1), color: 0x42a5f5, label: 'Z' },
+      ];
+      const group = new THREE.Group();
+      defs.forEach(({ dir, color, label }) => {
+        const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), 1, color, 0.14, 0.07);
+        group.add(arrow);
+        const sprite = this.makeTextSprite(label, '#' + color.toString(16).padStart(6, '0'));
+        sprite.position.copy(dir).multiplyScalar(1.14);
+        group.add(sprite);
+      });
+      this.axesGroup = group;
+      this.scene.add(group);
+    },
+    makeTextSprite(text, color) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.font = 'bold 92px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // 深色描边保证浅色背景下也可读
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.strokeText(text, 64, 68);
+      ctx.fillStyle = color;
+      ctx.fillText(text, 64, 68);
+      const tex = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true });
+      const sprite = new THREE.Sprite(mat);
+      sprite.renderOrder = 20;
+      sprite.scale.set(0.22, 0.22, 1);
+      return sprite;
     },
     onPointerDown(e) {
       if (e.button !== 0) return;
@@ -397,6 +446,17 @@ export default {
           else this.grid.material.dispose();
         }
         this.grid = null;
+      }
+      if (this.axesGroup) {
+        this.axesGroup.traverse(obj => {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            if (obj.material.map) obj.material.map.dispose();
+            obj.material.dispose();
+          }
+        });
+        this.scene.remove(this.axesGroup);
+        this.axesGroup = null;
       }
       if (this.controls) {
         this.controls.dispose();

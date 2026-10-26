@@ -1,5 +1,6 @@
 import os
 import platform
+import re
 import sys
 import json
 from collections import defaultdict
@@ -37,6 +38,42 @@ def handle_click_image_path():
     return "OK"
 
 
+VIEWABLE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".ply"}
+
+
+def _collect_from_txt(txt_path, postfixes):
+    """按 txt 行序收集文件；相对路径按 txt 所在目录解析，一行多列时逐列匹配。"""
+    base = os.path.dirname(txt_path)
+
+    def resolve(token):
+        token = os.path.expanduser(token)
+        if not os.path.isabs(token):
+            token = os.path.join(base, token)
+        return os.path.normpath(token)
+
+    def usable(path):
+        return os.path.isfile(path) and os.path.splitext(path)[-1] in postfixes
+
+    paths, seen, missing = [], set(), 0
+    with open(txt_path, "r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            whole = resolve(line)
+            if usable(whole):
+                found = [whole]
+            else:
+                found = [p for p in map(resolve, re.split(r"[\s,]+", line)) if usable(p)]
+            if not found:
+                missing += 1
+            for p in found:
+                if p not in seen:
+                    seen.add(p)
+                    paths.append(p)
+    return paths, missing
+
+
 @app.route('/getAllImagePaths', methods=['GET', 'POST'])
 def get_all_image_paths():
     print(request)
@@ -48,6 +85,18 @@ def get_all_image_paths():
     if not os.path.exists(src_dir):
         dir_file_path_map["state"] = "not exist"
         return jsonify(dir_file_path_map)
+
+    if os.path.isfile(src_dir):
+        src_file = os.path.normpath(src_dir)
+        ext = os.path.splitext(src_file)[-1]
+        if ext.lower() == ".txt":
+            paths, missing = _collect_from_txt(src_file, postfixes)
+            return jsonify({"state": "ok", "mode": "txt", "dir": src_file,
+                            "paths": paths, "missing": missing})
+        if ext in postfixes or ext.lower() in VIEWABLE_EXTS:
+            return jsonify({"state": "ok", "mode": "file", "dir": os.path.dirname(src_file),
+                            "paths": [src_file]})
+        return jsonify({"state": "unsupported"})
 
     for cur_dir, _, filenames in os.walk(src_dir):
         for filename in filenames:

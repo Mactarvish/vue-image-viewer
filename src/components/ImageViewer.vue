@@ -85,7 +85,7 @@
     <nav :style="{ width: navWidth + 'px' }">
       <div class="nav-resize" @mousedown.prevent="onNavResizeStart"></div>
       <div>
-        <el-input v-model="srcDir" @keyup.enter.native="browseDir()" placeholder="展示该目录的图片" clearable></el-input>
+        <el-input v-model="srcDir" @keyup.enter.native="browseDir()" placeholder="目录 / 图片或 ply / txt 列表路径" clearable></el-input>
       </div>
 
       <div class="filter-options">
@@ -144,8 +144,11 @@
       <el-button ref="preview" @click="browseDir" type="primary">预览</el-button>
 
       <div class="history">
-        <el-tag class="history-tag" v-for="dir in historyDirs" :key="dir" closable @close="RemoveHistoryItem(dir)">
-          <span @click="clickHistory(dir)" class="history-dir">{{ dir }}</span>
+        <el-tag class="history-tag" v-for="item in historyDirs" :key="item.dir" closable @close="RemoveHistoryItem(item.dir)">
+          <div class="history-item">
+            <span @click="clickHistory(item.dir)" class="history-dir">{{ item.dir }}</span>
+            <span v-if="item.time" class="history-time">{{ formatHistoryTime(item.time) }}</span>
+          </div>
         </el-tag>
       </div>
       <div class="info-for-clicked-image">
@@ -186,15 +189,25 @@ const NAV_WIDTH_DEFAULT = 320;
 const NAV_WIDTH_MIN = 200;
 const NAV_WIDTH_MAX = 640;
 
-// 从 localStorage 读取历史路径，解析失败则忽略
+// 历史项为 { dir, time }，最新在前；旧版存的是按时间正序的纯字符串数组，读取时反转迁移
 function loadHistoryDirs() {
   try {
     const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter(d => typeof d === 'string') : [];
+    if (!Array.isArray(parsed)) return [];
+    if (parsed.every(d => typeof d === 'string')) {
+      return parsed.slice().reverse().map(dir => ({ dir, time: null }));
+    }
+    return parsed
+      .map(d => (typeof d === 'string' ? { dir: d, time: null } : d))
+      .filter(d => d && typeof d.dir === 'string');
   } catch (e) {
     return [];
   }
+}
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
 }
 
 function loadDefaultPrefix() {
@@ -250,6 +263,8 @@ export default {
       nameInclude: "",
       nameExclude: "",
       dirLoading: false,
+      // 'dir' 浏览目录 | 'file' 单个文件 | 'txt' 按 txt 列表
+      listMode: 'dir',
       clickMode: "copy",
       annoLabel: "object",
       annoPending: null,
@@ -299,7 +314,8 @@ export default {
           paths = paths.slice();
           if (this.sortMode === 'random') {
             this.shuffleArray(paths);
-          } else {
+          } else if (this.listMode !== 'txt') {
+            // txt 列表保持文件内的行序
             paths.sort(naturalCompare);
           }
           return { dir, paths };
@@ -401,7 +417,7 @@ export default {
     browseDir() {
       const resolvedDir = this.resolveSrcDir();
       if (!resolvedDir) {
-        this.$message.warning('请输入目录路径');
+        this.$message.warning('请输入路径');
         return;
       }
       // 相对路径解析后回填到输入框，方便确认实际路径
@@ -420,15 +436,33 @@ export default {
         const state = data.state;
         delete data.state;
         if (state == "not exist") {
-          this.$message(`目录 ${resolvedDir} 不存在！`);
+          this.$message(`路径 ${resolvedDir} 不存在！`);
           return;
         }
-        this.rawDirFilePathsMap = data;
+        if (state == "unsupported") {
+          this.$message.warning(`不支持的文件类型：${resolvedDir}（仅支持图片、ply、txt）`);
+          return;
+        }
+        if (data.mode) {
+          this.listMode = data.mode;
+          this.rawDirFilePathsMap = { [data.dir]: data.paths || [] };
+          if (data.mode === 'txt') {
+            if (!data.paths || data.paths.length === 0) {
+              this.$message.warning('txt 中没有找到可显示的图片或 ply');
+            } else if (data.missing > 0) {
+              this.$message.warning(`共 ${data.paths.length} 个文件；${data.missing} 行未匹配到（不存在或后缀未勾选）`);
+            }
+          }
+        } else {
+          this.listMode = 'dir';
+          this.rawDirFilePathsMap = data;
+        }
         this.timestamp = new Date().getTime();
         this.errInfo = "";
-        if (!this.historyDirs.includes(resolvedDir)) {
-          this.historyDirs.push(resolvedDir);
-        }
+        this.historyDirs = [
+          { dir: resolvedDir, time: Date.now() },
+          ...this.historyDirs.filter(item => item.dir !== resolvedDir),
+        ];
       }).catch(reason => {
         console.log(reason);
         this.errInfo = "错误信息：" + reason;
@@ -437,7 +471,11 @@ export default {
       });
     },
     RemoveHistoryItem(dir) {
-      this.historyDirs.splice(this.historyDirs.indexOf(dir), 1);
+      this.historyDirs = this.historyDirs.filter(item => item.dir !== dir);
+    },
+    formatHistoryTime(ts) {
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
     },
     clickHistory(dir) {
       this.srcDir = dir;
@@ -759,10 +797,22 @@ a {
   }
 }
 
+.history-item {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
 .history-dir {
   display: inline;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.history-time {
+  font-size: 11px;
+  color: #909399;
 }
 
 .history-dir:hover {
