@@ -574,13 +574,13 @@ export default {
       if (this.zoomIndex <= 0) return;
       this.zoomIndex -= 1;
       this.zoomedImagePath = this.processedPaths[this.zoomIndex];
-      this.resetZoom();
+      // 切图保持当前缩放/平移，便于在同类位置间对比
     },
     zoomNext() {
       if (this.zoomIndex >= this.processedPaths.length - 1) return;
       this.zoomIndex += 1;
       this.zoomedImagePath = this.processedPaths[this.zoomIndex];
-      this.resetZoom();
+      // 切图保持当前缩放/平移
     },
     copyZoomedImagePath() {
       const b = document.createElement("button");
@@ -926,6 +926,8 @@ a {
   max-height: 90%;
   object-fit: contain;
   transform-origin: center center;
+  /* 永远锐利：禁用浏览器缩放插值，看到像素原始面目 */
+  image-rendering: pixelated;
   transition: none;
 }
 

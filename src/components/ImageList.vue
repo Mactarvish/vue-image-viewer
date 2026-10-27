@@ -289,6 +289,8 @@ export default {
 .img-wrap img {
     margin-right: 0;
     display: block;
+    /* 永远锐利：禁用浏览器缩放插值，看到像素原始面目 */
+    image-rendering: pixelated;
 }
 
 .ply-card {
