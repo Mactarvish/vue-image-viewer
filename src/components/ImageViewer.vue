@@ -185,6 +185,7 @@ function naturalCompare(a, b) {
 const HISTORY_STORAGE_KEY = 'image-viewer-history-dirs';
 const PREFIX_STORAGE_KEY = 'image-viewer-default-prefix';
 const NAV_WIDTH_STORAGE_KEY = 'image-viewer-nav-width';
+const LAST_BROWSED_KEY = 'image-viewer-last-browsed';
 const NAV_WIDTH_DEFAULT = 320;
 const NAV_WIDTH_MIN = 200;
 const NAV_WIDTH_MAX = 640;
@@ -373,6 +374,9 @@ export default {
     window.addEventListener('keydown', this.onGlobalKeydown);
     window.addEventListener('mousemove', this.onNavResizeMove);
     window.addEventListener('mouseup', this.onNavResizeEnd);
+
+    // 刷新后恢复上次浏览的路径并自动加载
+    this.restoreLastBrowsed();
   },
   beforeDestroy() {
     window.removeEventListener('keydown', this.onGlobalKeydown);
@@ -381,6 +385,24 @@ export default {
     if (this.clipboard) this.clipboard.destroy();
   },
   methods: {
+    restoreLastBrowsed() {
+      // 优先级：URL ?dir= 参数 > localStorage 记录；无则不自动加载
+      let target = '';
+      try {
+        const u = new URL(window.location.href);
+        const q = u.searchParams.get('dir');
+        if (q) target = q;
+      } catch (e) { /* ignore */ }
+      if (!target) {
+        try {
+          target = localStorage.getItem(LAST_BROWSED_KEY) || '';
+        } catch (e) { /* ignore */ }
+      }
+      if (target) {
+        this.srcDir = target;
+        this.browseDir();
+      }
+    },
     persistDefaultPrefix() {
       try {
         localStorage.setItem(PREFIX_STORAGE_KEY, this.defaultPrefix || '');
@@ -414,10 +436,63 @@ export default {
       if (raw.startsWith('/') || raw.startsWith('~')) return raw;
       return joinPrefix(this.defaultPrefix, raw);
     },
+    // 智能解析输入路径：
+    // ① 历史记录子串包含（最近优先，命中即停）
+    // ② 逐级拼接：对每条历史（新→旧）依次试「该路径及其各级父目录 + 完整输入」，
+    //    再试默认前缀 → ~ → /
+    // ③ 全部失败返回 ''，由调用方报错。输入字符串始终完整参与拼接，不拆段。
+    smartResolvePath(rawInput) {
+      const raw = rawInput.trim();
+      if (!raw) return '';
+      if (raw.startsWith('/') || raw.startsWith('~')) return raw;
+
+      const candidates = [];
+      const addCandidate = (p) => {
+        if (p && !candidates.includes(p)) candidates.push(p);
+      };
+      // 一个基底目录 + 输入 → 该目录及其所有父目录（含根）逐级拼接
+      const addBaseVariants = (base) => {
+        let cur = base.replace(/\/+$/, '');
+        addCandidate(cur + '/' + raw);
+        while (cur && cur !== '/' && cur !== '~') {
+          cur = cur.slice(0, cur.lastIndexOf('/')) || '/';
+          addCandidate(cur + '/' + raw);
+        }
+      };
+
+      // ① 历史子串匹配（跳过命中自身即输入是完整历史路径的情况，走直接存在性判断）
+      for (const item of this.historyDirs) {
+        if (item.dir.includes(raw)) return item.dir;
+      }
+
+      // ②a 各历史记录（新→旧）的各级父目录拼接
+      for (const item of this.historyDirs) {
+        addBaseVariants(item.dir);
+      }
+      // ②b 默认前缀 → ~ → /
+      if ((this.defaultPrefix || '').trim()) addBaseVariants(this.defaultPrefix.trim());
+      addBaseVariants('~');
+      addBaseVariants('');
+
+      // 存在性过滤：返回第一个真实存在的候选
+      return candidates.find(p => this.pathExists(p)) || '';
+    },
+    pathExists(p) {
+      // 后端 GET /pathExists，见 file_server.py
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', this.rootUrl + '/pathExists?path=' + encodeURIComponent(p), false);
+      try {
+        xhr.send();
+        if (xhr.status === 200) {
+          return JSON.parse(xhr.responseText).exists === true;
+        }
+      } catch (e) { /* ignore */ }
+      return false;
+    },
     browseDir() {
-      const resolvedDir = this.resolveSrcDir();
+      const resolvedDir = this.smartResolvePath(this.srcDir);
       if (!resolvedDir) {
-        this.$message.warning('请输入路径');
+        this.$message.warning(`无法解析路径「${this.srcDir}」：历史记录与常见基底均未匹配到存在路径`);
         return;
       }
       // 相对路径解析后回填到输入框，方便确认实际路径
@@ -459,6 +534,9 @@ export default {
         }
         this.timestamp = new Date().getTime();
         this.errInfo = "";
+        try {
+          localStorage.setItem(LAST_BROWSED_KEY, resolvedDir);
+        } catch (e) { /* ignore */ }
         this.historyDirs = [
           { dir: resolvedDir, time: Date.now() },
           ...this.historyDirs.filter(item => item.dir !== resolvedDir),

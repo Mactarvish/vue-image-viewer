@@ -14,6 +14,11 @@
       <div ref="host" class="ply-host">
         <div v-if="loading" class="ply-overlay">加载点云中...</div>
         <div v-if="error" class="ply-overlay error">{{ error }}</div>
+        <div v-if="pivotLabel" class="ply-pivot-info" @click="copyPivot">
+          <span class="ply-pivot-title">选中点</span>
+          <span class="ply-pivot-coord">{{ pivotLabel }}</span>
+          <span class="ply-pivot-tip">点击复制</span>
+        </div>
       </div>
       <div class="ply-modal-footer">
         <el-button @click="clearPivot" :disabled="!pivotLabel">取消选中</el-button>
@@ -368,7 +373,17 @@ export default {
       this.controls.target.copy(world);
       this.controls.update();
       this.showPivotMarker(world);
-      this.pivotLabel = `(${world.x.toFixed(3)}, ${world.y.toFixed(3)}, ${world.z.toFixed(3)})`;
+      this.pivotLabel = `${world.x.toFixed(3)}, ${world.y.toFixed(3)}, ${world.z.toFixed(3)}`;
+    },
+    copyPivot() {
+      if (!this.pivotLabel) return;
+      const b = document.createElement('button');
+      b.setAttribute('class', 'cb');
+      b.setAttribute('data-clipboard-text', this.pivotLabel);
+      document.body.appendChild(b);
+      b.click();
+      b.remove();
+      this.$message && this.$message.success(`已复制：${this.pivotLabel}`);
     },
     showPivotMarker(world) {
       this.clearPivotMarker();
@@ -543,6 +558,43 @@ export default {
   display: block;
   width: 100% !important;
   height: 100% !important;
+}
+
+.ply-pivot-info {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 12px;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-family: Menlo, Consolas, monospace;
+  cursor: pointer;
+  z-index: 3;
+  user-select: none;
+}
+
+.ply-pivot-info:hover {
+  border-color: #ffeb3b;
+}
+
+.ply-pivot-title {
+  color: #ffeb3b;
+  font-size: 12px;
+}
+
+.ply-pivot-coord {
+  color: #eee;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.ply-pivot-tip {
+  color: #888;
+  font-size: 11px;
 }
 
 .ply-overlay {

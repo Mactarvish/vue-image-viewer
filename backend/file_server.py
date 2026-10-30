@@ -41,6 +41,13 @@ def handle_click_image_path():
 VIEWABLE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".ply"}
 
 
+@app.route('/pathExists')
+def path_exists():
+    path = request.args.get("path", "")
+    expanded = os.path.expanduser(path) if path else ""
+    return jsonify({"exists": bool(expanded) and os.path.exists(expanded)})
+
+
 def _collect_from_txt(txt_path, postfixes):
     """按 txt 行序收集文件；相对路径按 txt 所在目录解析，一行多列时逐列匹配。"""
     base = os.path.dirname(txt_path)
