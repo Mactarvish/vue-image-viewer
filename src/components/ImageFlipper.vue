@@ -101,8 +101,8 @@ export default {
             const imageRect = img.getBoundingClientRect();
             const cursorX = e.clientX - imageRect.x;
             const cursorY = e.clientY - imageRect.y;
-            const x = Math.round(cursorX / visWidth * oriWidth);
-            const y = Math.round(cursorY / visHeight * oriHeight);
+            const x = Math.floor(cursorX / visWidth * oriWidth);
+            const y = Math.floor(cursorY / visHeight * oriHeight);
             return {
                 imagePath: this.pathFromEvent(e),
                 x: Math.max(0, Math.min(oriWidth - 1, x)),
@@ -162,14 +162,9 @@ export default {
             }
             this.zoomImage(e);
         },
+        // 单击只记录/展示路径，不再写剪贴板
         copyImagePath(e) {
             const oriImagePath = this.pathFromEvent(e);
-            const b = document.createElement("button");
-            b.setAttribute("class", "cb");
-            b.setAttribute("data-clipboard-text", oriImagePath);
-            document.body.appendChild(b);
-            b.click();
-            b.remove();
             this.$emit('path-copied', oriImagePath);
             this.$axios.get(this.rootUrl + '/clickImagePath', {
                 params: { clickedImagePath: e.target.src }

@@ -142,6 +142,26 @@
       </div>
 
       <el-button ref="preview" @click="browseDir" type="primary">预览</el-button>
+      <el-button @click="showClickedDialog = true">点击记录 ({{ clickedPaths.length }})</el-button>
+
+      <el-dialog title="点击过的路径" :visible.sync="showClickedDialog" width="70%" top="6vh"
+                 :close-on-click-modal="true" append-to-body>
+        <div class="clicked-toolbar">
+          <el-input v-model="clickedFilter" placeholder="子串过滤" size="small" clearable
+                    style="width: 260px;"></el-input>
+          <span class="clicked-count">共 {{ clickedPaths.length }} 条，显示 {{ filteredClickedPaths.length }} 条</span>
+          <div class="clicked-actions">
+            <el-button size="mini" @click="copyClickedList">复制全部(过滤后)</el-button>
+            <el-button size="mini" type="danger" plain @click="clearClickedPaths">清空</el-button>
+          </div>
+        </div>
+        <div class="clicked-list">
+          <div v-for="p in filteredClickedPaths" :key="p" class="clicked-row">
+            <span class="clicked-path" :title="p" @click="onPathCopied(p)">{{ p }}</span>
+          </div>
+          <div v-if="filteredClickedPaths.length === 0" class="clicked-empty">暂无记录</div>
+        </div>
+      </el-dialog>
 
       <div class="history">
         <el-tag class="history-tag" v-for="item in historyDirs" :key="item.dir" closable @close="RemoveHistoryItem(item.dir)">
@@ -186,6 +206,9 @@ const HISTORY_STORAGE_KEY = 'image-viewer-history-dirs';
 const PREFIX_STORAGE_KEY = 'image-viewer-default-prefix';
 const NAV_WIDTH_STORAGE_KEY = 'image-viewer-nav-width';
 const LAST_BROWSED_KEY = 'image-viewer-last-browsed';
+// 点击过的路径记录（去重，最新在前，有上限）
+const CLICKED_STORAGE_KEY = 'image-viewer-clicked-paths';
+const CLICKED_MAX = 500;
 const NAV_WIDTH_DEFAULT = 320;
 const NAV_WIDTH_MIN = 200;
 const NAV_WIDTH_MAX = 640;
@@ -209,6 +232,23 @@ function loadHistoryDirs() {
 
 function pad2(n) {
   return String(n).padStart(2, '0');
+}
+
+// 点击记录：去重、最新在前、超出上限裁剪
+function loadClickedPaths() {
+  try {
+    const raw = localStorage.getItem(CLICKED_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(d => typeof d === 'string') : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function persistClickedPaths(list) {
+  try {
+    localStorage.setItem(CLICKED_STORAGE_KEY, JSON.stringify(list.slice(0, CLICKED_MAX)));
+  } catch (e) { /* 存储满时静默降级 */ }
 }
 
 function loadDefaultPrefix() {
@@ -272,6 +312,9 @@ export default {
 
       clickedImagePath: "",
       clickedImageName: "",
+      clickedPaths: loadClickedPaths(),
+      showClickedDialog: false,
+      clickedFilter: "",
 
       showZoomModal: false,
       zoomedImagePath: "",
@@ -324,10 +367,16 @@ export default {
         .filter(group => group.paths.length > 0);
       return groups;
     },
+    // 点击记录：按过滤子串筛选，保持最新在前
+    filteredClickedPaths() {
+      const kw = (this.clickedFilter || '').trim();
+      if (!kw) return this.clickedPaths;
+      return this.clickedPaths.filter(p => p.includes(kw));
+    },
     zoomImageStyle() {
       return {
         transform: `translate(${this.zoomOffsetX}px, ${this.zoomOffsetY}px) scale(${this.zoomScale})`,
-        cursor: this.zoomPanning ? 'grabbing' : 'grab',
+        cursor: this.zoomPanning ? 'grabbing' : 'crosshair',
       };
     },
   },
@@ -363,7 +412,7 @@ export default {
 
     this.clipboard = new Clipboard(".cb");
     this.clipboard.on('success', (e) => {
-      this.$message(`复制成功： ${e.text}`);
+      // 仅更新侧栏显示，不再弹复制成功提示
       this.clickedImagePath = e.text;
       this.clickedImageName = e.text.split('/').pop();
     });
@@ -551,6 +600,24 @@ export default {
     RemoveHistoryItem(dir) {
       this.historyDirs = this.historyDirs.filter(item => item.dir !== dir);
     },
+    // 点击弹窗中的路径行：复制到剪贴板并置顶
+    copyClickedList() {
+      const lines = this.filteredClickedPaths.join('\n');
+      const b = document.createElement("button");
+      b.setAttribute("class", "cb");
+      b.setAttribute("data-clipboard-text", lines);
+      document.body.appendChild(b);
+      b.click();
+      b.remove();
+      this.$message.success(`已复制 ${this.filteredClickedPaths.length} 条路径`);
+    },
+    clearClickedPaths() {
+      this.$confirm('确定清空所有点击记录？', '提示', { type: 'warning' }).then(() => {
+        this.clickedPaths = [];
+        persistClickedPaths(this.clickedPaths);
+        this.$message.success('已清空');
+      }).catch(() => {});
+    },
     formatHistoryTime(ts) {
       const d = new Date(ts);
       return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -568,6 +635,11 @@ export default {
     onPathCopied(path) {
       this.clickedImagePath = path;
       this.clickedImageName = basename(path);
+      // 记录点击过的路径：去重，最新在前
+      if (path) {
+        this.clickedPaths = [path, ...this.clickedPaths.filter(p => p !== path)];
+        persistClickedPaths(this.clickedPaths);
+      }
     },
     clearAnnoPending() {
       this.annoPending = null;
@@ -667,6 +739,7 @@ export default {
       document.body.appendChild(b);
       b.click();
       b.remove();
+      this.onPathCopied(this.zoomedImagePath);
     },
     onZoomWheel(e) {
       const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
@@ -729,8 +802,8 @@ export default {
       if (!visWidth || !visHeight) return;
       let cursorX = e.clientX - imageRect.x;
       let cursorY = e.clientY - imageRect.y;
-      let x = Math.round(cursorX / visWidth * oriWidth);
-      let y = Math.round(cursorY / visHeight * oriHeight);
+      let x = Math.floor(cursorX / visWidth * oriWidth);
+      let y = Math.floor(cursorY / visHeight * oriHeight);
       x = Math.max(0, Math.min(oriWidth - 1, x));
       y = Math.max(0, Math.min(oriHeight - 1, y));
       const rgb = formatRgb(samplePixel(img, x, y));
@@ -839,6 +912,61 @@ a {
 .info-for-clicked-image {
   margin-top: auto;
   word-wrap: break-word;
+}
+
+.clicked-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.clicked-count {
+  color: #888;
+  font-size: 13px;
+}
+
+.clicked-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.clicked-list {
+  max-height: 62vh;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 4px 0;
+}
+
+.clicked-row {
+  padding: 4px 12px;
+  border-bottom: 1px solid #f5f5f5;
+
+  &:hover {
+    background: #f0f7ff;
+  }
+}
+
+.clicked-path {
+  font-family: Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+  cursor: pointer;
+  color: #2c3e50;
+}
+
+.clicked-path:hover {
+  color: #409eff;
+  text-decoration: underline;
+}
+
+.clicked-empty {
+  text-align: center;
+  color: #999;
+  padding: 24px 0;
+  font-size: 13px;
 }
 
 .history {
