@@ -141,9 +141,10 @@
         <div class="anno-hint">点两个对角保存 labelme json；Esc 取消当前点</div>
       </div>
 
-      <el-button ref="preview" @click="browseDir" type="primary">预览</el-button>
-      <el-button @click="showClickedDialog = true">点击记录 ({{ clickedPaths.length }})</el-button>
-
+      <div class="nav-buttons">
+        <el-button ref="preview" @click="browseDir" type="primary">预览</el-button>
+        <el-button @click="showClickedDialog = true">点击记录 ({{ clickedPaths.length }})</el-button>
+      </div>
       <el-dialog title="点击过的路径" :visible.sync="showClickedDialog" width="70%" top="6vh"
                  :close-on-click-modal="true" append-to-body>
         <div class="clicked-toolbar">
@@ -912,6 +913,20 @@ a {
 .info-for-clicked-image {
   margin-top: auto;
   word-wrap: break-word;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 0;
+
+  .el-button {
+    flex: 1;
+    margin-left: 0;
+
+    &+.el-button {
+      margin-left: 8px;
+    }
+  }
 }
 
 .clicked-toolbar {
