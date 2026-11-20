@@ -496,6 +496,14 @@ export default {
       if (!raw) return '';
       if (raw.startsWith('/') || raw.startsWith('~')) return raw;
 
+      // 0) 路径已存在就直接用，不做历史补全
+      const prefix = (this.defaultPrefix || '').trim().replace(/\/+$/, '');
+      if (prefix) {
+        const underPrefix = prefix + '/' + raw;
+        if (this.pathExists(underPrefix)) return underPrefix;
+      }
+      if (this.pathExists(raw)) return raw;
+
       const candidates = [];
       const addCandidate = (p) => {
         if (p && !candidates.includes(p)) candidates.push(p);
@@ -510,17 +518,20 @@ export default {
         }
       };
 
-      // ① 历史子串匹配（跳过命中自身即输入是完整历史路径的情况，走直接存在性判断）
+      // ① 历史子串匹配：命中后截断到匹配子串末尾（输入是权威后缀）
       for (const item of this.historyDirs) {
-        if (item.dir.includes(raw)) return item.dir;
+        const idx = item.dir.indexOf(raw);
+        if (idx === -1) continue;
+        const truncated = item.dir.slice(0, idx + raw.length);
+        if (this.pathExists(truncated)) return truncated;
       }
 
       // ②a 各历史记录（新→旧）的各级父目录拼接
       for (const item of this.historyDirs) {
         addBaseVariants(item.dir);
       }
-      // ②b 默认前缀 → ~ → /
-      if ((this.defaultPrefix || '').trim()) addBaseVariants(this.defaultPrefix.trim());
+      // ②b 默认前缀 → ~ → /（前缀直拼已在 0 试过，这里仍保留父级回退）
+      if (prefix) addBaseVariants(prefix);
       addBaseVariants('~');
       addBaseVariants('');
 

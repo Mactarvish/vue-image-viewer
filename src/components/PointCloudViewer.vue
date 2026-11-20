@@ -21,10 +21,19 @@
         </div>
       </div>
       <div class="ply-modal-footer">
-        <el-button @click="clearPivot" :disabled="!pivotLabel">取消选中</el-button>
-        <el-button @click="resetView" :disabled="loading || !!error">重置视角</el-button>
-        <el-button @click="$emit('close')">关闭</el-button>
-        <el-button type="primary" @click="copyPath">复制路径</el-button>
+        <div class="ply-footer-left">
+          <span class="ply-color-label">颜色</span>
+          <el-radio-group :value="colorMode" size="mini" :disabled="loading || !!error" @input="setColorMode">
+            <el-radio-button label="original" :disabled="!hasColors">原色</el-radio-button>
+            <el-radio-button label="gradient">渐变</el-radio-button>
+          </el-radio-group>
+        </div>
+        <div class="ply-footer-right">
+          <el-button @click="clearPivot" :disabled="!pivotLabel">取消选中</el-button>
+          <el-button @click="resetView" :disabled="loading || !!error">重置视角</el-button>
+          <el-button @click="$emit('close')">关闭</el-button>
+          <el-button type="primary" @click="copyPath">复制路径</el-button>
+        </div>
       </div>
     </div>
   </div>
@@ -62,6 +71,8 @@ export default {
       displayCount: null,
       downsampled: false,
       pivotLabel: '',
+      colorMode: 'original',
+      hasColors: false,
     };
   },
   mounted() {
@@ -176,8 +187,16 @@ export default {
         this.displayCount = total;
       }
 
-      if (!geo.attributes.color) {
-        this.applyHeightColors(geo);
+      // 保留 PLY 自带颜色；无颜色时生成 X 轴渐变作为初始显示色
+      this.hasColors = !!geo.attributes.color;
+      this.gradientColors = null;
+      if (this.hasColors) {
+        this.colorMode = 'original';
+        // 备份原色，供切换回“原色”时恢复
+        this.originalColors = geo.attributes.color.array.slice();
+      } else {
+        this.colorMode = 'gradient';
+        this.gradientColors = this.applyHeightColors(geo);
       }
 
       geo.computeBoundingBox();
@@ -220,7 +239,7 @@ export default {
       return g;
     },
     applyHeightColors(geometry) {
-      // 伪彩沿 X 轴渐变（近→远）
+      // 伪彩沿 X 轴渐变（近→远）；返回生成的颜色数组供切换使用
       const pos = geometry.attributes.position;
       const n = pos.count;
       let minX = Infinity;
@@ -236,6 +255,24 @@ export default {
         jetColor((pos.getX(i) - minX) / span, colors, i * 3);
       }
       geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      return colors;
+    },
+    setColorMode(mode) {
+      if (!this.points) return;
+      this.colorMode = mode;
+      const geo = this.points.geometry;
+      // 惰性生成渐变色，仅首次切换时计算
+      if (mode === 'gradient') {
+        if (!this.gradientColors) {
+          this.gradientColors = this.applyHeightColors(geo);
+        } else {
+          geo.attributes.color.array.set(this.gradientColors);
+          geo.attributes.color.needsUpdate = true;
+        }
+      } else if (this.hasColors && this.originalColors) {
+        geo.attributes.color.array.set(this.originalColors);
+        geo.attributes.color.needsUpdate = true;
+      }
     },
     fitToObject(obj) {
       const box = new THREE.Box3().setFromObject(obj);
@@ -618,7 +655,25 @@ export default {
   padding: 10px 16px;
   border-top: 1px solid #333;
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.ply-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ply-footer-right {
+  display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.ply-color-label {
+  color: #999;
+  font-size: 12px;
 }
 </style>
