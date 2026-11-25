@@ -4,7 +4,8 @@
       <div class="ply-modal-header">
         <h3 :title="path">{{ path }}</h3>
         <span class="ply-hint">
-          单击选中旋转中心 · 点空白取消 · 拖动自由旋转 · 滚轮缩放 · 右键平移 · Esc关闭
+          单击选中旋转中心 · 点空白取消 · 左键旋转 · 滚轮缩放 · 右键拖动缩放 · 中键平移 · ←→切 ply · Esc关闭
+          <template v-if="total > 0"> · {{ index + 1 }}/{{ total }}</template>
           <template v-if="pointCount != null"> · {{ displayCount }} 点</template>
           <template v-if="downsampled">（已降采样）</template>
           <template v-if="pivotLabel"> · 中心 {{ pivotLabel }}</template>
@@ -29,6 +30,8 @@
           </el-radio-group>
         </div>
         <div class="ply-footer-right">
+          <el-button @click="$emit('prev')" :disabled="index <= 0">上一张</el-button>
+          <el-button @click="$emit('next')" :disabled="index < 0 || index >= total - 1">下一张</el-button>
           <el-button @click="clearPivot" :disabled="!pivotLabel">取消选中</el-button>
           <el-button @click="resetView" :disabled="loading || !!error">重置视角</el-button>
           <el-button @click="$emit('close')">关闭</el-button>
@@ -62,6 +65,8 @@ export default {
   props: {
     url: { type: String, required: true },
     path: { type: String, default: '' },
+    index: { type: Number, default: 0 },
+    total: { type: Number, default: 0 },
   },
   data() {
     return {
@@ -74,6 +79,12 @@ export default {
       colorMode: 'original',
       hasColors: false,
     };
+  },
+  watch: {
+    url() {
+      // 切 ply：重载点云，保持当前相机姿态
+      this.loadPly({ keepView: true });
+    },
   },
   mounted() {
     this.initScene();
@@ -94,7 +105,9 @@ export default {
       this.scene.background = new THREE.Color(0x111111);
 
       this.camera = new THREE.PerspectiveCamera(60, w / h, 0.01, 10000);
-      this.camera.position.set(1.5, 1.2, 1.5);
+      // Z-up：默认站在 (0,0,20cm) 沿 +X 看
+      this.camera.up.set(0, 0, 1);
+      this.camera.position.set(0, 0, 0.2);
 
       this.renderer = new THREE.WebGLRenderer({ antialias: true });
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -103,11 +116,19 @@ export default {
 
       this.controls = new TrackballControls(this.camera, this.renderer.domElement);
       // Trackball：绕 target 自由三轴旋转（含 yaw），不像 Orbit 锁世界 up
+      // mouseButtons 用 action 枚举比对 event.button：MIDDLE:PAN / RIGHT:DOLLY → 中键平移、右键缩放
+      this.controls.mouseButtons = {
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.PAN,
+        RIGHT: THREE.MOUSE.DOLLY,
+      };
       this.controls.rotateSpeed = 3.0;
-      this.controls.zoomSpeed = 1.4;
+      this.controls.zoomSpeed = 0.55;
       this.controls.panSpeed = 0.9;
       this.controls.staticMoving = false;
       this.controls.dynamicDampingFactor = 0.12;
+      this.controls.target.set(1, 0, 0.2);
+      this.controls.update();
 
       this.raycaster = new THREE.Raycaster();
       this.raycaster.params.Points = { threshold: 0.02 };
@@ -117,6 +138,10 @@ export default {
       const canvas = this.renderer.domElement;
       canvas.addEventListener('pointerdown', this.onPointerDown);
       canvas.addEventListener('pointerup', this.onPointerUp);
+      // 拦截中键默认行为（浏览器自动滚页 / 中键拖拽滚动）
+      canvas.addEventListener('pointerdown', this.blockMiddleDefault);
+      canvas.addEventListener('mousedown', this.blockMiddleDefault);
+      canvas.addEventListener('auxclick', this.blockMiddleDefault);
 
       this.scene.add(new THREE.AmbientLight(0xffffff, 0.85));
       const dir = new THREE.DirectionalLight(0xffffff, 0.45);
@@ -143,15 +168,19 @@ export default {
       };
       tick();
     },
-    loadPly() {
+    loadPly(opts = {}) {
+      const keepView = !!opts.keepView;
       this.loading = true;
       this.error = '';
+      this._loadId = (this._loadId || 0) + 1;
+      const loadId = this._loadId;
       const loader = new PLYLoader();
       loader.load(
         this.url,
         (geometry) => {
+          if (loadId !== this._loadId) return;
           try {
-            this.mountGeometry(geometry);
+            this.mountGeometry(geometry, { keepView });
             this.loading = false;
           } catch (e) {
             this.error = '解析失败：' + (e && e.message ? e.message : e);
@@ -160,12 +189,14 @@ export default {
         },
         undefined,
         (err) => {
+          if (loadId !== this._loadId) return;
           this.error = '加载失败：' + (err && err.message ? err.message : String(err));
           this.loading = false;
         }
       );
     },
-    mountGeometry(geometry) {
+    mountGeometry(geometry, opts = {}) {
+      const keepView = !!opts.keepView;
       this.clearPoints();
       this.clearPivotMarker();
       this.pivotLabel = '';
@@ -210,7 +241,7 @@ export default {
       const points = new THREE.Points(geo, material);
       this.points = points;
       this.scene.add(points);
-      this.fitToObject(points);
+      this.fitToObject(points, { keepView });
     },
     downsample(geometry, maxPoints) {
       const pos = geometry.attributes.position;
@@ -274,25 +305,26 @@ export default {
         geo.attributes.color.needsUpdate = true;
       }
     },
-    fitToObject(obj) {
+    fitToObject(obj, opts = {}) {
+      const keepView = !!opts.keepView;
       const box = new THREE.Box3().setFromObject(obj);
       if (box.isEmpty()) return;
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
       const maxDim = Math.max(size.x, size.y, size.z, 0.1);
-      const dist = maxDim * 1.8;
+      const dist = Math.max(maxDim * 1.8, 1);
 
       this._pickScale = Math.max(maxDim * 0.015, 0.005);
       if (this.raycaster) {
         this.raycaster.params.Points.threshold = this._pickScale;
       }
 
-      this.controls.target.copy(center);
+      // 只按包围盒调 near/far 与网格；切 ply 时保留当前视角
       this.camera.near = Math.max(dist / 1000, 0.001);
       this.camera.far = dist * 100;
-      this.camera.position.set(center.x + dist, center.y + dist * 0.7, center.z + dist);
       this.camera.updateProjectionMatrix();
-      this.controls.update();
+      if (!keepView) this.applyDefaultView();
+      else if (this.controls) this.controls.update();
 
       if (this.grid) {
         const scale = Math.max(maxDim, 0.5);
@@ -305,6 +337,14 @@ export default {
           this.axesGroup.scale.setScalar(scale * 0.45);
         }
       }
+    },
+    applyDefaultView() {
+      if (!this.camera || !this.controls) return;
+      this.camera.up.set(0, 0, 1);
+      this.camera.position.set(0, 0, 0.2);
+      this.controls.target.set(1, 0, 0.2);
+      this.camera.lookAt(this.controls.target);
+      this.controls.update();
     },
     buildAxes() {
       const defs = [
@@ -343,6 +383,9 @@ export default {
       sprite.renderOrder = 20;
       sprite.scale.set(0.22, 0.22, 1);
       return sprite;
+    },
+    blockMiddleDefault(e) {
+      if (e.button === 1 || e.type === 'auxclick') e.preventDefault();
     },
     onPointerDown(e) {
       if (e.button !== 0) return;
@@ -453,7 +496,7 @@ export default {
     },
     resetView() {
       this.clearPivot();
-      if (this.points) this.fitToObject(this.points);
+      this.applyDefaultView();
     },
     copyPath() {
       const b = document.createElement('button');
@@ -485,8 +528,12 @@ export default {
       this._animating = false;
       if (this._raf) cancelAnimationFrame(this._raf);
       if (this.renderer && this.renderer.domElement) {
-        this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown);
-        this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp);
+        const el = this.renderer.domElement;
+        el.removeEventListener('pointerdown', this.onPointerDown);
+        el.removeEventListener('pointerup', this.onPointerUp);
+        el.removeEventListener('pointerdown', this.blockMiddleDefault);
+        el.removeEventListener('mousedown', this.blockMiddleDefault);
+        el.removeEventListener('auxclick', this.blockMiddleDefault);
       }
       this.clearPivotMarker();
       this.clearPoints();
@@ -595,6 +642,8 @@ export default {
   display: block;
   width: 100% !important;
   height: 100% !important;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .ply-pivot-info {

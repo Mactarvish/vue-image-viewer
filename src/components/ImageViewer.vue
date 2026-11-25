@@ -5,6 +5,10 @@
       v-if="showPlyModal"
       :url="rootUrl + plyPath"
       :path="plyPath"
+      :index="plyIndex"
+      :total="plyPaths.length"
+      @prev="plyPrev"
+      @next="plyNext"
       @close="closePlyModal">
     </PointCloudViewer>
 
@@ -339,6 +343,15 @@ export default {
       return this.groupedPaths.reduce((acc, group) => {
         return acc.concat(group.paths.filter(p => !isPlyPath(p)));
       }, []);
+    },
+    // 仅 ply：点云模态框上一张/下一张
+    plyPaths() {
+      return this.groupedPaths.reduce((acc, group) => {
+        return acc.concat(group.paths.filter(p => isPlyPath(p)));
+      }, []);
+    },
+    plyIndex() {
+      return this.plyPaths.indexOf(this.plyPath);
     },
     // 按子目录分组：目录间自然序，组内按排序方式处理；全局扁平顺序见 processedPaths
     groupedPaths() {
@@ -721,6 +734,14 @@ export default {
       this.showPlyModal = false;
       this.plyPath = "";
     },
+    plyPrev() {
+      if (this.plyIndex <= 0) return;
+      this.plyPath = this.plyPaths[this.plyIndex - 1];
+    },
+    plyNext() {
+      if (this.plyIndex < 0 || this.plyIndex >= this.plyPaths.length - 1) return;
+      this.plyPath = this.plyPaths[this.plyIndex + 1];
+    },
     closeZoomModal() {
       this.showZoomModal = false;
       this.zoomedImagePath = "";
@@ -791,7 +812,17 @@ export default {
         }
         return;
       }
-      if (!this.showZoomModal || this.showPlyModal) return;
+      if (this.showPlyModal) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          this.plyPrev();
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          this.plyNext();
+        }
+        return;
+      }
+      if (!this.showZoomModal) return;
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         this.zoomPrev();
